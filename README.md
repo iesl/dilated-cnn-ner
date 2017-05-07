@@ -26,7 +26,7 @@ Setup
 3. Perform all data preprocessing for a given configuration. For example:
 
   ```
-  ./bin/preprocess.sh conf/dilated-cnn.conf
+  ./bin/preprocess.sh conf/conll/dilated-cnn.conf
   ```
 
   This calls `preprocess.py`, which loads the data from text files, maps the tokens, labels and any other features to
@@ -37,7 +37,7 @@ Training
 Once the data preprocessing is completed, you can train a tagger:
 
   ```
-  ./bin/train-cnn.sh conf/dilated-cnn.conf
+  ./bin/train-cnn.sh conf/conll/dilated-cnn.conf
   ```
 
 Evaluation
@@ -45,12 +45,12 @@ Evaluation
 By default, the trainer will write the model which achieved the best dev F1. To evaluate a saved model on the dev set:
 
   ```
-  ./bin/eval-cnn.sh conf/dilated-cnn.conf --load_model path/to/model
+  ./bin/eval-cnn.sh conf/conll/dilated-cnn.conf --load_model path/to/model
   ```
 To evaluate a saved model on the test set:
 
   ```
-  ./bin/eval-cnn.sh conf/dilated-cnn.conf --load_model path/to/model test
+  ./bin/eval-cnn.sh conf/conll/dilated-cnn.conf --load_model path/to/model test
   ```
 
 
