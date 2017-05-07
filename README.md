@@ -2,8 +2,8 @@
 
 This code implements the models described in the paper
 "[Fast and Accurate Sequence Labeling with Iterated Dilated Convolutions](https://arxiv.org/abs/1702.02098)"
-by [Emma Strubell](cs.umass.edu/~strubell), [Patrick Verga](cs.umass.edu/~pat),
-[David Belanger](cs.umass.edu/~belanger) and [Andrew McCallum](cs.umass.edu/~mccallum).
+by [Emma Strubell](https://cs.umass.edu/~strubell), [Patrick Verga](https://cs.umass.edu/~pat),
+[David Belanger](https://cs.umass.edu/~belanger) and [Andrew McCallum](https://cs.umass.edu/~mccallum).
 
 Requirements
 -----
