@@ -82,18 +82,14 @@ def main(argv):
     # with open(dev_dir + '/sizes.txt', 'r') as f:
     #     num_dev_examples = int(f.readline()[:-1])
 
-    bilou_set = {}
     type_set = {}
+    type_int_int_map = {}
     outside_set = ["O", "<PAD>",  "<S>",  "</S>", "<ZERO>"]
     for label, id in labels_str_id_map.items():
         label_type = label if label in outside_set else label[2:]
-        label_bilou = label[0]
         if label_type not in type_set:
             type_set[label_type] = len(type_set)
-        if label_bilou not in bilou_set:
-            bilou_set[label_bilou] = len(bilou_set)
-    num_types = len(type_set)
-    num_bilou = len(bilou_set)
+        type_int_int_map[id] = type_set[label_type]
     print(type_set)
 
     # load embeddings, if given; initialize in range [-.01, .01]
@@ -106,53 +102,23 @@ def main(argv):
                 split_line = line.strip().split(" ")
                 word = split_line[0]
                 embedding = split_line[1:]
-                # print("word: %s" % word)
-                # print("embedding: %s" % embedding)
-                if word in vocab_str_id_map and (FLAGS.pretrained_pad or (word != "<PAD>" and word != "<OOV>")):
+                if word in vocab_str_id_map:
                     embeddings_used += 1
                     # shift by -1 because we are going to add a 0 constant vector for the padding later
                     embeddings[vocab_str_id_map[word]-1] = map(float, embedding)
-                elif word.lower() in vocab_str_id_map and (FLAGS.pretrained_pad or (word != "<PAD>" and word != "<OOV>")):
+                elif word.lower() in vocab_str_id_map:
                     embeddings_used += 1
                     embeddings[vocab_str_id_map[word.lower()] - 1] = map(float, embedding)
     print("Loaded %d/%d embeddings (%2.2f%% coverage)" % (embeddings_used, vocab_size, embeddings_used/vocab_size*100))
 
-    layers_map = sorted(json.loads(FLAGS.layers.replace("'", '"')).items()) \
-                    if FLAGS.model == 'cnn' or FLAGS.model == "cnn-fast" or FLAGS.model == "cnn-multi" \
-                    else None
-    layers_map2 = sorted(json.loads(FLAGS.layers2.replace("'", '"')).items()) \
-                    if layers_map is not None and FLAGS.layers2 != '' \
-                    else None
+    layers_map = sorted(json.loads(FLAGS.layers.replace("'", '"')).items()) if FLAGS.model == 'cnn' else None
 
     pad_width = int(layers_map[0][1]['width']/2) if layers_map is not None else 1
 
-    # if FLAGS.model == 'cnn' or FLAGS.model == "cnn-fast":
-    #     layers = FLAGS.layers.replace("'", '"')
-    #     print("layers: ", layers)
-    #     layers_map = sorted(json.loads(layers).items())
-    #
-    #     if FLAGS.layers2 != '':
-    #         layers2 = FLAGS.layers2.replace("'", '"')
-    #         print("layers2: ", layers2)
-    #         layers_map2 = sorted(json.loads(layers2).items())
-    #     input_filter_width = layers_map[0][1]['width']
-    #     pad_width = int(input_filter_width/2)
-    # else:
-    #     pad_width = 1
-
-    def sample_pad_size():
-        return np.random.randint(1, FLAGS.max_additional_pad) if FLAGS.max_additional_pad > 0 else pad_width
-
-    # print(seq_len_with_pad)
-
     with tf.Graph().as_default():
-        # train_batcher = NodeBatcher(train_dir, seq_len_with_pad, FLAGS.batch_size)
-        # num_buckets = 2 #int(num_train_examples/FLAGS.batch_size) + (0 if num_train_examples % FLAGS.batch_size == 0 else 1)
-        # print("num buckets: %d" % num_buckets)
         train_batcher = Batcher(train_dir, FLAGS.batch_size) if FLAGS.memmap_train else SeqBatcher(train_dir, FLAGS.batch_size)
 
         dev_batch_size = FLAGS.batch_size # num_dev_examples
-        # dev_batcher = NodeBatcher(dev_dir, seq_len_with_pad, dev_batch_size, num_epochs=1)
         dev_batcher = SeqBatcher(dev_dir, dev_batch_size, num_buckets=0, num_epochs=1)
         if FLAGS.ontonotes:
             domain_dev_batchers = {domain: SeqBatcher(dev_dir.replace('*', domain),
@@ -333,19 +299,12 @@ def main(argv):
                         dev_batch = sess.run(seq_batcher.next_batch_op)
                         dev_label_batch, dev_token_batch, dev_shape_batch, dev_char_batch, dev_seq_len_batch, dev_tok_len_batch = dev_batch
                         mask_batch = np.zeros(dev_token_batch.shape)
-                        if FLAGS.predict_pad:
-                            actual_seq_lens = np.add(np.sum(dev_seq_len_batch, axis=1),
-                                                     (2 if FLAGS.start_end else 1) * pad_width * (
-                                                     (dev_seq_len_batch != 0).sum(axis=1) + (
-                                                     0 if FLAGS.start_end else 1)))
-                            for i, seq_len in enumerate(actual_seq_lens):
-                                mask_batch[i, :seq_len] = 1
-                        else:
-                            for i, seq_lens in enumerate(dev_seq_len_batch):
-                                start = pad_width
-                                for seq_len in seq_lens:
-                                    mask_batch[i, start:start + seq_len] = 1
-                                    start += seq_len + (2 if FLAGS.start_end else 1) * pad_width
+                        actual_seq_lens = np.add(np.sum(dev_seq_len_batch, axis=1),
+                                                 (2 if FLAGS.start_end else 1) * pad_width * (
+                                                 (dev_seq_len_batch != 0).sum(axis=1) + (
+                                                 0 if FLAGS.start_end else 1)))
+                        for i, seq_len in enumerate(actual_seq_lens):
+                            mask_batch[i, :seq_len] = 1
                         batches.append((dev_label_batch, dev_token_batch, dev_shape_batch, dev_char_batch,
                                             dev_seq_len_batch, dev_tok_len_batch, mask_batch))
                     except:
@@ -365,23 +324,16 @@ def main(argv):
                         train_batch = sess.run(train_eval_batcher.next_batch_op)
                         train_label_batch, train_token_batch, train_shape_batch, train_char_batch, train_seq_len_batch, train_tok_len_batch = train_batch
                         mask_batch = np.zeros(train_token_batch.shape)
-                        if FLAGS.predict_pad:
-                            actual_seq_lens = np.add(np.sum(train_seq_len_batch, axis=1), (2 if FLAGS.start_end else 1) * pad_width * ((train_seq_len_batch != 0).sum(axis=1) + (0 if FLAGS.start_end else 1)))
-                            for i, seq_len in enumerate(actual_seq_lens):
-                                mask_batch[i, :seq_len] = 1
-                        else:
-                            for i, seq_lens in enumerate(train_seq_len_batch):
-                                start = pad_width
-                                for seq_len in seq_lens:
-                                    mask_batch[i, start:start + seq_len] = 1
-                                    start += seq_len + (2 if FLAGS.start_end else 1) * pad_width
+                        actual_seq_lens = np.add(np.sum(train_seq_len_batch, axis=1), (2 if FLAGS.start_end else 1) * pad_width * ((train_seq_len_batch != 0).sum(axis=1) + (0 if FLAGS.start_end else 1)))
+                        for i, seq_len in enumerate(actual_seq_lens):
+                            mask_batch[i, :seq_len] = 1
                         train_batches.append((train_label_batch, train_token_batch, train_shape_batch, train_char_batch, train_seq_len_batch, train_tok_len_batch, mask_batch))
                     except Exception as e:
                         done = True
             if FLAGS.memmap_train:
                 train_batcher.load_and_bucket_data(sess)
 
-            def train(max_epochs, best_score, best_precision, model_hidden_drop, model_input_drop, until_convergence, max_lower=6, min_iters=20):
+            def train(max_epochs, best_score, model_hidden_drop, model_input_drop, until_convergence, max_lower=6, min_iters=20):
                 print("Training on %d sentences (%d examples)" % (num_train_examples, num_train_examples))
                 start_time = time.time()
                 train_batcher._step = 1.0
@@ -452,16 +404,9 @@ def main(argv):
                     num_sentences_batch = np.sum(seq_len_batch != 0, axis=1)
 
                     mask_batch = np.zeros((batch_size, batch_seq_len)).astype("int")
-                    if FLAGS.predict_pad:
-                        actual_seq_lens = np.add(np.sum(seq_len_batch, axis=1), (2 if FLAGS.start_end else 1) * pad_width * (num_sentences_batch + (0 if FLAGS.start_end else 1)))
-                        for i, seq_len in enumerate(actual_seq_lens):
-                            mask_batch[i, :seq_len] = 1
-                    else:
-                        for i, seq_lens in enumerate(seq_len_batch):
-                            start = pad_width
-                            for seq_len in seq_lens:
-                                mask_batch[i, start:start+seq_len] = 1
-                                start += seq_len + (2 if FLAGS.start_end else 1)*pad_width
+                    actual_seq_lens = np.add(np.sum(seq_len_batch, axis=1), (2 if FLAGS.start_end else 1) * pad_width * (num_sentences_batch + (0 if FLAGS.start_end else 1)))
+                    for i, seq_len in enumerate(actual_seq_lens):
+                        mask_batch[i, :seq_len] = 1
                     examples += batch_size
 
                     # apply word dropout
@@ -528,12 +473,12 @@ def main(argv):
                         run_evaluation(domain_batches, FLAGS.layers2 != '', "(test - domain: %s)" % domain)
 
             else:
-                best_score, training_iteration, train_speed = train(FLAGS.max_epochs, 0.0, 0.0,
+                best_score, training_iteration, train_speed = train(FLAGS.max_epochs, 0.0,
                                                        FLAGS.hidden_dropout, FLAGS.input_dropout,
                                                        until_convergence=FLAGS.until_convergence)
                 if FLAGS.model_dir:
-                    print("Deserializing model: " + FLAGS.model_dir + "-frontend.tf")
-                    frontend_saver.restore(sess, FLAGS.model_dir + "-frontend.tf")
+                    print("Deserializing model: " + FLAGS.model_dir + ".tf")
+                    saver.restore(sess, FLAGS.model_dir + ".tf")
 
             sv.coord.request_stop()
             sv.coord.join(threads)

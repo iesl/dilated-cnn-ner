@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 import tf_utils
 
+
 class CNN(object):
 
     def __init__(self, num_classes, vocab_size, shape_domain_size, char_domain_size, char_size, embedding_size,
@@ -113,8 +114,7 @@ class CNN(object):
             flat_sequence_lengths = tf.add(tf.reduce_sum(self.sequence_lengths, 1),
                                            tf.scalar_mul(2, count_zeros_per_row))
 
-            log_likelihood, transition_params = tf.contrib.crf.crf_log_likelihood(scores, labels,
-                                                                                  flat_sequence_lengths,
+            log_likelihood, transition_params = tf.contrib.crf.crf_log_likelihood(scores, labels, flat_sequence_lengths,
                                                                                   transition_params=self.transition_params)
             loss += tf.reduce_mean(-log_likelihood)
         else:
