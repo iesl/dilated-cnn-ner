@@ -5,14 +5,9 @@ import time
 import tensorflow as tf
 import numpy as np
 from data_utils import SeqBatcher, Batcher
-from cnn_spred import CNN_Spred
-from cnn_spred_multitask import CNN_Spred_Multi
-from cnn_fast import CNN_Fast
+from cnn import CNN
 from bilstm import BiLSTM
-from bilstm_char import BiLSTMChar
 from cnn_char import CNNChar
-from context_agg import ContextAgg
-from encoder_decoder import EncoderDecoder
 import eval_f1 as evaluation
 import json
 import tf_utils
@@ -86,8 +81,6 @@ def main(argv):
     # with open(dev_dir + '/sizes.txt', 'r') as f:
     #     num_dev_examples = int(f.readline()[:-1])
 
-    type_int_int_map = {}
-    bilou_int_int_map = {}
     bilou_set = {}
     type_set = {}
     outside_set = ["O", "<PAD>",  "<S>",  "</S>", "<ZERO>"]
@@ -98,11 +91,6 @@ def main(argv):
             type_set[label_type] = len(type_set)
         if label_bilou not in bilou_set:
             bilou_set[label_bilou] = len(bilou_set)
-        type_int_int_map[id] = type_set[label_type]
-        bilou_int_int_map[id] = bilou_set[label_bilou]
-
-    type_int_str_map = {a: b for b, a in type_set.items()}
-    bilou_int_str_map = {a: b for b, a in bilou_set.items()}
     num_types = len(type_set)
     num_bilou = len(bilou_set)
     print(type_set)
@@ -181,7 +169,7 @@ def main(argv):
         char_embeddings = char_embedding_model.outputs if char_embedding_model is not None else None
 
         if FLAGS.model == 'cnn':
-            model = CNN_Spred(
+            model = CNN(
                     num_classes=labels_size,
                     vocab_size=vocab_size,
                     shape_domain_size=shape_domain_size,
@@ -192,52 +180,13 @@ def main(argv):
                     nonlinearity=FLAGS.nonlinearity,
                     layers_map=layers_map,
                     viterbi=FLAGS.viterbi,
-                    res_activation=FLAGS.frontend_residual_layers,
-                    batch_norm=FLAGS.frontend_batch_norm,
                     projection=FLAGS.projection,
                     loss=FLAGS.loss,
                     margin=FLAGS.margin,
                     repeats=FLAGS.block_repeats,
                     share_repeats=FLAGS.share_repeats,
                     char_embeddings=char_embeddings,
-                    pool_blocks=FLAGS.pool_blocks,
-                    fancy_blocks=FLAGS.fancy_blocks,
-                    residual_blocks=FLAGS.residual_blocks,
                     embeddings=embeddings)
-        elif FLAGS.model == "cnn-multi":
-            model = CNN_Spred_Multi(
-                num_label_classes=labels_size,
-                num_bio_classes=num_bilou,
-                num_type_classes=num_types,
-                vocab_size=vocab_size,
-                shape_domain_size=shape_domain_size,
-                char_domain_size=char_domain_size,
-                char_size=FLAGS.char_dim,
-                embedding_size=FLAGS.embed_dim,
-                shape_size=FLAGS.shape_dim,
-                nonlinearity=FLAGS.nonlinearity,
-                layers_map=layers_map,
-                viterbi=FLAGS.viterbi,
-                res_activation=FLAGS.frontend_residual_layers,
-                batch_norm=FLAGS.frontend_batch_norm,
-                projection=FLAGS.projection,
-                loss=FLAGS.loss,
-                embeddings=embeddings)
-        elif FLAGS.model == "cnn-fast":
-            model = CNN_Fast(
-                # sequence_length=seq_len_with_pad,
-                num_classes=labels_size,
-                vocab_size=vocab_size,
-                shape_domain_size=shape_domain_size,
-                char_domain_size=char_domain_size,
-                char_size=FLAGS.char_dim,
-                embedding_size=FLAGS.embed_dim,
-                shape_size=FLAGS.shape_dim,
-                nonlinearity=FLAGS.nonlinearity,
-                layers_map=layers_map,
-                viterbi=FLAGS.viterbi,
-                layers_map2=None if FLAGS.layers2 == '' else layers_map2,
-                embeddings=embeddings)
         elif FLAGS.model == "bilstm":
             model = BiLSTM(
                     num_classes=labels_size,
@@ -252,13 +201,6 @@ def main(argv):
                     hidden_dim=FLAGS.lstm_dim,
                     char_embeddings=char_embeddings,
                     embeddings=embeddings)
-        elif FLAGS.model == 'seq2seq':
-            model = EncoderDecoder(
-                    # sequence_length=seq_len_with_pad,
-                    num_classes=labels_size,
-                    vocab_size=vocab_size,
-                    embedding_size=FLAGS.embed_dim,
-                    lstm_dim=FLAGS.lstm_dim)
         else:
             print(FLAGS.model + ' is not a valid model type')
             sys.exit(1)

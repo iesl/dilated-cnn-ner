@@ -4,15 +4,11 @@ import tensorflow as tf
 import numpy as np
 import tf_utils
 
-class CNN_Spred(object):
+class CNN(object):
 
-    """
-    A CNN for text classification.
-    Uses an embedding layer, followed by a convolutional, max-pooling and softmax layer.
-    """
     def __init__(self, num_classes, vocab_size, shape_domain_size, char_domain_size, char_size, embedding_size,
                  shape_size, nonlinearity, layers_map, viterbi, res_activation, batch_norm, projection,
-                 loss, margin, repeats, share_repeats, char_embeddings, pool_blocks, fancy_blocks, residual_blocks, embeddings=None):
+                 loss, margin, repeats, share_repeats, char_embeddings, embeddings=None):
 
         self.num_classes = num_classes
         self.shape_domain_size = shape_domain_size
@@ -29,11 +25,8 @@ class CNN_Spred(object):
         self.margin = margin
         self.char_embeddings = char_embeddings
         self.repeats = repeats
-        self.pool_blocks = pool_blocks
         self.viterbi = viterbi
         self.share_repeats = share_repeats
-        self.fancy_blocks = fancy_blocks
-        self.residual_blocks = residual_blocks
 
         # word embedding input
         self.input_x1 = tf.placeholder(tf.int64, [None, None], name="input_x1")
@@ -68,17 +61,9 @@ class CNN_Spred(object):
 
 
         self.l2_penalty = tf.placeholder_with_default(0.0, [], name="l2_penalty")
-        self.pad_penalty = tf.placeholder_with_default(0.0, [], name="pad_penalty")
         self.drop_penalty = tf.placeholder_with_default(0.0, [], name="drop_penalty")
 
-
-        # Keeping track of l2 regularization loss (optional)
         self.l2_loss = tf.constant(0.0)
-
-        # set the pad token to a constant 0 vector
-        # self.word_zero_pad = tf.constant(0.0, dtype=tf.float32, shape=[1, embedding_size])
-        # self.shape_zero_pad = tf.constant(0.0, dtype=tf.float32, shape=[1, shape_size])
-        # self.char_zero_pad = tf.constant(0.0, dtype=tf.float32, shape=[1, char_size])
 
         self.use_characters = char_size != 0
         self.use_shape = shape_size != 0
@@ -88,10 +73,6 @@ class CNN_Spred(object):
         if self.viterbi:
             self.transition_params = tf.get_variable("transitions", [num_classes, num_classes])
 
-        # Embedding layer
-        # if embeddings is None:
-        #     embeddings = np.multiply(np.add(np.random.rand(vocab_size-1, embedding_size).astype('float32'), -0.1), 0.01)
-        # self.w_e = tf.concat(0, [self.word_zero_pad, tf.get_variable("w_e", initializer=embeddings)])
         word_embeddings_shape = (vocab_size-1, embedding_size)
         self.w_e = tf_utils.initialize_embeddings(word_embeddings_shape, name="w_e", pretrained=embeddings, old=False)
 
@@ -108,19 +89,7 @@ class CNN_Spred(object):
 
             labels = tf.cast(self.input_y, 'int32')
 
-            if self.pool_blocks:
-                expanded_scores = [tf.expand_dims(block_unflat_scores, 3) for block_unflat_scores in self.block_unflat_scores]
-                concat_outputs = tf.concat(axis=3, values=expanded_scores)
-                maxpool_outputs = tf.reduce_max(concat_outputs, 3)
-
-                expanded_scores_no_dropout = [tf.expand_dims(block_unflat_scores, 3) for block_unflat_scores in
-                                   self.block_unflat_no_dropout_scores]
-                concat_outputs_no_dropout = tf.concat(axis=3, values=expanded_scores_no_dropout)
-                maxpool_outputs_no_dropout = tf.reduce_max(concat_outputs_no_dropout, 3)
-                self.loss = self.compute_loss(maxpool_outputs, maxpool_outputs_no_dropout, labels)
-
-                self.unflat_scores = maxpool_outputs
-            elif self.which_loss == "block":
+            if self.which_loss == "block":
                 for unflat_scores, unflat_no_dropout_scores in zip(self.block_unflat_scores, self.block_unflat_no_dropout_scores):
                     self.loss += self.compute_loss(unflat_scores, unflat_no_dropout_scores, labels)
                 self.unflat_scores = self.block_unflat_scores[-1]
@@ -128,27 +97,6 @@ class CNN_Spred(object):
                 self.unflat_scores = self.block_unflat_scores[-1]
                 self.unflat_no_dropout_scores = self.block_unflat_no_dropout_scores[-1]
                 self.loss = self.compute_loss(self.unflat_scores, self.unflat_no_dropout_scores, labels)
-
-                # def compute_pad_loss():
-                #     self.unflat_sample_pad_scores = self.forward(self.input_x1_sample_pad, self.input_x2_sample_pad,
-                #                                                  self.sample_pad_max_seq_len, 1.0, 1.0, 1.0)
-                #     sample_pad_mask = tf.where(tf.equal(self.input_mask_sample_pad, 1))
-                #     scores_mask = tf.where(tf.equal(self.input_mask, 1))
-                #
-                #     unflat_sample_pad_scores_mask = tf_utils.gather_nd(self.unflat_sample_pad_scores, sample_pad_mask,
-                #                                                        (self.batch_size, self.sample_pad_max_seq_len))
-                #     unflat_scores_mask = tf_utils.gather_nd(self.unflat_no_dropout_scores, scores_mask,
-                #                                             (self.batch_size, self.max_seq_len))
-                #
-                #     # unflat_sample_pad_scores_mask = tf.Print(unflat_sample_pad_scores_mask, [unflat_sample_pad_scores_mask], message='unflat_sample_pad_scores_mask:')
-                #     # unflat_scores_mask = tf.Print(unflat_scores_mask, [unflat_scores_mask], message='unflat_scores_mask:')
-                #     return tf.nn.l2_loss(tf.sub(unflat_sample_pad_scores_mask, unflat_scores_mask))
-                #     # sample_pad_loss = tf.Print(sample_pad_loss, [sample_pad_loss, self.loss], message='padding, rest loss:')
-                #
-                # sample_pad_loss = tf.cond(self.pad_penalty > 0.0, compute_pad_loss, lambda: tf.constant(0.0))
-
-                # self.loss += self.pad_penalty * sample_pad_loss
-
 
         with tf.name_scope("predictions"):
             if viterbi:
@@ -167,7 +115,8 @@ class CNN_Spred(object):
                                            tf.scalar_mul(2, count_zeros_per_row))
 
             log_likelihood, transition_params = tf.contrib.crf.crf_log_likelihood(scores, labels,
-                                                                                  flat_sequence_lengths, transition_params=self.transition_params)
+                                                                                  flat_sequence_lengths,
+                                                                                  transition_params=self.transition_params)
             loss += tf.reduce_mean(-log_likelihood)
         else:
             if self.which_loss == "mean" or self.which_loss == "block":
@@ -224,9 +173,6 @@ class CNN_Spred(object):
                 input_list.append(char_embeddings_masked)
                 input_size += self.char_size
             if self.use_shape:
-                # shape_embeddings = np.multiply(
-                #     np.add(np.random.rand(self.shape_domain_size - 1, self.shape_size).astype('float32'), -0.1), 0.01)
-                # w_s = tf.concat(0, [self.shape_zero_pad, tf.get_variable("w_s", initializer=shape_embeddings)])
                 shape_embeddings_shape = (self.shape_domain_size-1, self.shape_size)
                 w_s = tf_utils.initialize_embeddings(shape_embeddings_shape, name="w_s")
                 shape_embeddings = tf.nn.embedding_lookup(w_s, input_x2)
@@ -249,30 +195,15 @@ class CNN_Spred(object):
             print("input feats expanded drop", input_feats_expanded_drop.get_shape())
 
             # first projection of embeddings
-
             w = tf_utils.initialize_weights(filter_shape, initial_layer_name + "_w", init_type='xavier', gain='relu')
             b = tf.get_variable(initial_layer_name + "_b", initializer=tf.constant(0.01, shape=[initial_num_filters]))
-            # conv0 = tf.nn.conv2d(input_feats_expanded_drop, w, strides=[1, initial_filter_width, 1, 1], padding="SAME", name=initial_layer_name)
             conv0 = tf.nn.conv2d(input_feats_expanded_drop, w, strides=[1, 1, 1, 1], padding="SAME", name=initial_layer_name)
             h0 = tf_utils.apply_nonlinearity(tf.nn.bias_add(conv0, b), 'relu')
 
             initial_inputs = [h0]
             last_dims = initial_num_filters
-            if self.fancy_blocks:
-                last_dims += initial_num_filters
-                last_dims += self.num_classes
-
-                initial_softmax_var = tf.multiply(tf.get_variable("init-softmax-var", initializer=tf.constant(1/self.num_classes, shape=[self.num_classes])), self.ones)
-
-                initial_softmax_var = tf.expand_dims(initial_softmax_var, 1)
-                initial_inputs.append(h0)
-                initial_inputs.append(initial_softmax_var)
-
-                # print("h0 shape:", h0.get_shape())
-                # print("softmax shape:", initial_softmax_var.get_shape())
 
             # Stacked atrous convolutions
-            # last_dims = initial_num_filters
             last_output = tf.concat(axis=3, values=initial_inputs)
 
             for block in range(self.repeats):
@@ -299,37 +230,23 @@ class CNN_Spred(object):
                             filter_shape = [1, filter_width, inner_last_dims, num_filters]
                             w = tf_utils.initialize_weights(filter_shape, layer_name + "_w", init_type=initialization, gain=self.nonlinearity, divisor=self.num_classes)
                             b = tf.get_variable(layer_name + "_b", initializer=tf.constant(0.0 if initialization == "identity" or initialization == "varscale" else 0.001, shape=[num_filters]))
-                            # conv = tf.nn.atrous_conv2d(
-                            #     last_output,
-                            #     w,
-                            #     rate=dilation,
-                            #     padding="SAME",
-                            #     name=layer_name)
+                            # h = tf_utils.residual_layer(inner_last_output, w, b, dilation, self.nonlinearity, self.batch_norm, layer_name + "_r",
+                            #                             self.batch_size, max_seq_len, self.res_activation, self.training) \
+                            #     if last_output != input_feats_expanded_drop \
+                            #     else tf_utils.residual_layer(inner_last_output, w, b, dilation, self.nonlinearity, False, layer_name + "_r",
+                            #                             self.batch_size, max_seq_len, 0, self.training)
 
-                            # batch normalization
-                            # conv_bn = tf.contrib.layers.batch_norm(conv, decay=0.995, scale=False, is_training=self.batch_norm, trainable=True)
-                            # Apply nonlinearity
-                            # h = apply_nonlinearity(tf.nn.bias_add(conv_bn, b), nonlinearity)
+                            conv = tf.nn.atrous_conv2d(inner_last_output, w, rate=dilation, padding="SAME", name=layer_name)
+                            conv_b = tf.nn.bias_add(conv, b)
+                            h = tf_utils.apply_nonlinearity(conv_b, self.nonlinearity)
 
-                            # conv_b = tf.nn.bias_add(conv, b)
-                            # h = tf_utils.residual_layer(last_output, w, b, dilation, self.nonlinearity, layer_name + "_r", self.batch_size, self.max_seq_len) \
-                            #     if self.residuals and last_dims == num_filters else tf_utils.apply_nonlinearity(conv_b, self.nonlinearity)
-                            h = tf_utils.residual_layer(inner_last_output, w, b, dilation, self.nonlinearity, self.batch_norm, layer_name + "_r",
-                                                        self.batch_size, max_seq_len, self.res_activation, self.training) \
-                                if last_output != input_feats_expanded_drop \
-                                else tf_utils.residual_layer(inner_last_output, w, b, dilation, self.nonlinearity, False, layer_name + "_r",
-                                                        self.batch_size, max_seq_len, 0, self.training)
                             # so, only apply "take" to last block (may want to change this later)
                             if take_layer:
                                 hidden_outputs.append(h)
                                 total_output_width += num_filters
                             inner_last_dims = num_filters
                             inner_last_output = h
-                            # last_output = tf.nn.dropout(h, middle_dropout_keep_prob)
 
-                    # pad_len = int(filter_width/2)
-
-                    # Combine all the pooled features
                     h_concat = tf.concat(axis=3, values=hidden_outputs)
                     last_output = tf.nn.dropout(h_concat, middle_dropout_keep_prob)
                     last_dims = total_output_width
@@ -365,13 +282,4 @@ class CNN_Spred(object):
                         unflat_scores = tf.reshape(scores, tf.stack([self.batch_size, max_seq_len, self.num_classes]))
                         block_unflat_scores.append(unflat_scores)
 
-                    if self.fancy_blocks:
-                        last_outputs = [h_concat]
-                        last_outputs.append(h0)
-                        last_outputs.append(tf.expand_dims(tf.nn.softmax(unflat_scores),1))
-                        # print("last output shape:", last_output.get_shape())
-                        # print("h0 shape:", h0.get_shape())
-                        # print("softmax shape:", tf.expand_dims(tf.nn.softmax(unflat_scores),1).get_shape())
-                        last_output = tf.concat(axis=3, values=last_outputs)
-                        last_dims = last_dims + self.num_classes + initial_num_filters
         return block_unflat_scores, h_concat_squeeze

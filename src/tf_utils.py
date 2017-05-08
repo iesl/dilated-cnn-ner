@@ -23,18 +23,6 @@ def repeat(tensor, reps):
     return repeated_flat
 
 
-# def repeat_elements(x, rep, axis, axis_size):
-#     '''Repeats the elements of a tensor along an axis, like np.repeat
-#     If x has shape (s1, s2, s3) and axis=1, the output
-#     will have shape (s1, s2 * rep, s3)
-#     This function is taken from keras backend
-#     '''
-#     # x_shape = x.get_shape().as_list()
-#     # splits = tf.split(axis, x_shape[axis], x)
-#     splits = tf.unpack(x, axis=axis)
-#     x_rep = [s for s in splits for i in range(rep)]
-#     return tf.concat(axis, x_rep)
-
 def last_relevant(output, length):
     batch_size = tf.shape(output)[0]
     max_length = tf.shape(output)[1]
@@ -77,13 +65,8 @@ def initialize_weights(shape, name, init_type, gain="1.0", divisor=1.0):
     if init_type == "random":
         return tf.get_variable(name, initializer=tf.truncated_normal(shape, stddev=0.1))
     if init_type == "xavier":
-        # shape_is_tensor = issubclass(type(shape), tf.Tensor)
-        # rank = len(shape.get_shape()) if shape_is_tensor else len(shape)
-        # if rank == 4:
-        #     return tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer_conv2d())
         return tf.get_variable(name, shape=shape, initializer=tf.contrib.layers.xavier_initializer())
     if init_type == "identity":
-        # todo whelp this is definitely wrong for 2d matrices
         middle0 = int(shape[0] / 2)
         middle1 = int(shape[1] / 2)
         if shape[2] == shape[3]:
@@ -143,14 +126,3 @@ def residual_layer(input, w, b, dilation, nonlinearity, batch_norm, name, batch_
         return tf.add(input_projected, conv_out)
     else:
         return conv_out
-
-
-# def residual_layer(input, output, input_size, output_size, nonlinearity, name):
-#     output_projected = apply_nonlinearity(output, nonlinearity)
-#     if input_size != output_size:
-#         w_r = initialize_weights([input_size, output_size], "w_o_" + name, init_type="xavier")
-#         b_r = tf.get_variable("b_r_" + name, initializer=tf.constant(0.01, shape=[output_size]))
-#         input_projected = tf.nn.xw_plus_b(input, w_r, b_r, name="proj_r_" + name)
-#     else:
-#         input_projected = input
-#     return tf.add(input_projected, output_projected)
