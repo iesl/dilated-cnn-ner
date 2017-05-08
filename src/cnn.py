@@ -19,7 +19,6 @@ class CNN(object):
         self.nonlinearity = nonlinearity
         self.layers_map = layers_map
         self.res_activation = res_activation
-        self.batch_norm = batch_norm
         self.projection = projection
         self.which_loss = loss
         self.margin = margin
