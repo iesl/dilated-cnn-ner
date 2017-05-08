@@ -7,7 +7,7 @@ import tf_utils
 class CNN(object):
 
     def __init__(self, num_classes, vocab_size, shape_domain_size, char_domain_size, char_size, embedding_size,
-                 shape_size, nonlinearity, layers_map, viterbi, res_activation, batch_norm, projection,
+                 shape_size, nonlinearity, layers_map, viterbi, res_activation, projection,
                  loss, margin, repeats, share_repeats, char_embeddings, embeddings=None):
 
         self.num_classes = num_classes
