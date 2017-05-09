@@ -46,7 +46,7 @@ fi
 vocab_dir="$data_dir/vocabs"
 echo "Writing extra vocab (cutoff $vocab_cutoff) to $update_vocab_file"
 mkdir -p $vocab_dir
-awk '{if (NF > 0) print $1}' $raw_data_dir/${data_files[$0]} \
+awk '{if (NF > 0) print $1}' "$raw_data_dir/${data_files[0]}" \
     | sed 's/[0-9]/0/g' \
     | sort \
     | uniq -c \
