@@ -21,7 +21,17 @@ Setup
   export DATA_DIR=/path/to/conll-2003
   ```
 
-2.
+2. Get some pretrained word embeddings, e.g. [SENNA embeddings](http://ronan.collobert.com/senna/download.html) or
+  [Glove embeddings](https://nlp.stanford.edu/projects/glove/). The code expects a space-separated file
+  with one word and its embedding per line, e.g.:
+   ```
+   word 0.45 0.67 0.99 ...
+   ```
+   Make a directory for the embeddings:
+   ```
+   mkdir -p data/embeddings
+   ```
+   and place the file there.
 
 3. Perform all data preprocessing for a given configuration. For example:
 

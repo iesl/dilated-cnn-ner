@@ -43,11 +43,20 @@ if [[ "$update_vocab_file" != "" ]]; then
     update_vocab_param="--update_vocab $update_vocab_file"
 fi
 
+vocab_dir="$data_dir/vocabs"
+echo "Writing extra vocab (cutoff $vocab_cutoff) to $update_vocab_file"
+mkdir -p $vocab_dir
+awk '{if (NF > 0) print $1}' $train_dir \
+    | sed 's/[0-9]/0/g' \
+    | sort \
+    | uniq -c \
+    | sort -rnk1 \
+    | awk '{if ($1 >= 4) print $2}' > $update_vocab_file
+
 echo "Writing output to $output_dir"
 
 for (( i=0; i < ${#data_files[@]}; i++)); do
 
-#for filename in "${data_files[@]}"; do
     filename=${data_files[$i]}
 
     update_maps="False"
@@ -57,12 +66,6 @@ for (( i=0; i < ${#data_files[@]}; i++)); do
     if [ -d $raw_data_dir/$filename ]; then
         for this_data_file in `find $raw_data_dir/$filename -type d | tail -n +2`; do
             this_output_dir=$output_dir/$filename #/${this_data_file##*/}
-
-#            if [[ "$update_maps" == "False" ]]; then
-#                labels_param="--labels $this_output_dir/label.txt"
-#                shape_param="--shapes $this_output_dir/shape.txt"
-#                char_param="--chars $this_output_dir/char.txt"
-#            fi
 
             echo "Processing file: $this_data_file"
 
