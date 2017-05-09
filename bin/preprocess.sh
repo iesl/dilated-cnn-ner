@@ -43,7 +43,7 @@ if [[ "$update_vocab_file" != "" ]]; then
     update_vocab_param="--update_vocab $update_vocab_file"
 fi
 
-vocab_dir="$data_dir/vocabs"
+vocab_dir="$DILATED_CNN_NER_ROOT/data/vocabs"
 echo "Writing extra vocab (cutoff $vocab_cutoff) to $update_vocab_file"
 mkdir -p $vocab_dir
 awk '{if (NF > 0) print $1}' "$raw_data_dir/${data_files[0]}" \
