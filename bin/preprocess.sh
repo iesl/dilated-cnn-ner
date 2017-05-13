@@ -76,6 +76,7 @@ for (( i=0; i < ${#data_files[@]}; i++)); do
             --out_dir $this_output_dir \
             --window_size $filter_width \
             --update_maps $update_maps \
+            --dataset $data_name \
             $update_vocab_param \
             $lower_param \
             $vocab_param \
@@ -84,7 +85,6 @@ for (( i=0; i < ${#data_files[@]}; i++)); do
             $char_param \
             $doc_param \
             $predict_pad_param \
-            $start_end_param \
             $additional_args"
             echo ${cmd}
             eval ${cmd}
@@ -107,6 +107,7 @@ for (( i=0; i < ${#data_files[@]}; i++)); do
         --out_dir $this_output_dir \
         --window_size $filter_width \
         --update_maps $update_maps \
+        --dataset $data_name \
         $update_vocab_param \
         $lower_param \
         $vocab_param \
@@ -115,7 +116,6 @@ for (( i=0; i < ${#data_files[@]}; i++)); do
         $char_param \
         $doc_param \
         $predict_pad_param \
-        $start_end_param \
         $additional_args"
         echo ${cmd}
         eval ${cmd}

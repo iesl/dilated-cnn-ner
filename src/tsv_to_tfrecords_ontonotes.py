@@ -34,13 +34,9 @@ tf.app.flags.DEFINE_boolean('update_maps', False, 'whether to update maps')
 
 tf.app.flags.DEFINE_string('update_vocab', '', 'file to update vocab with tokens from training data')
 
-# tf.app.flags.DEFINE_boolean('vocab_count_cutoff', 1, 'if update_vocab is true, keep words seen >= this many times')
-
 FLAGS = tf.app.flags.FLAGS
 
 ZERO_STR = "<ZERO>"
-# PAD_STR = "PADDING"
-# OOV_STR = "UNKNOWN"
 PAD_STR = "<PAD>"
 OOV_STR = "<OOV>"
 NONE_STR = "<NONE>"
@@ -74,24 +70,6 @@ def shape(string):
     else:
         return "a"
 
-    # upper = 'A'
-    # lower = 'a'
-    # digit = '0'
-    # symbol = '.'
-    # shape_str = ""
-    # for c in string:
-    #     if c.isupper():
-    #         shape_c = upper
-    #     elif c.islower():
-    #         shape_c = lower
-    #     elif c == digit:
-    #         shape_c = digit
-    #     else:
-    #         shape_c = symbol
-    #     if shape_str == "" or shape_c != shape_str[-1]:
-    #         shape_str += shape_c
-    # return shape_str
-
 
 def make_example(writer, lines, label_map, token_map, shape_map, char_map, update_vocab, update_chars):
     # data format is:
@@ -117,18 +95,12 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
     if sent_len == 0:
         return 0, 0, 0
 
-    # if sent_len > FLAGS.max_len:
-    #     print("Skipping sentence w/ %d tokens ( > max len %d)" % (sent_len, FLAGS.max_len))
-    #     return 0, 0, 0
-    # else:
-    # zero pad
     tokens = np.zeros(max_len_with_pad, dtype=np.int64)
     shapes = np.zeros(max_len_with_pad, dtype=np.int64)
     chars = np.zeros(max_len_with_pad*max_word_len, dtype=np.int64)
     intmapped_labels = np.zeros(max_len_with_pad, dtype=np.int64)
     sent_lens = []
     tok_lens = []
-    # tok_strs = []
 
     # initial padding
     if FLAGS.start_end:
@@ -147,14 +119,10 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
 
     last_label = "O"
     labels = []
-    # for k in range(pad_width):
-    #     intmapped_labels[k] = label_map[SENT_START]
     current_sent_len = 0
     char_start = pad_width
     idx = pad_width
     current_tag = ''
-    # skip_tags = ['DATE', 'TIME', 'PERCENT', 'MONEY', 'QUANTITY', 'ORDINAL', 'CARDINAL']
-
     for i, line in enumerate(lines):
         if line:
             parts = line.strip().split()
@@ -175,12 +143,9 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
                     label_str = 'I-%s' % current_tag
                 else:
                     label_str = 'O'
-                # if any(ext in label_str for ext in skip_tags):
-                #     label_str = 'O'
 
                 # skip docstart markers
                 if token_str == DOC_MARKER:
-                    # print("doc marker")
                     return 0, 0, 0
 
                 current_sent_len += 1
@@ -197,22 +162,15 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
 
                 token_str_normalized = token_str_digits.lower() if FLAGS.lowercase else token_str_digits
 
-                if token_shape not in shape_map:#  and update_vocab:
+                if token_shape not in shape_map:
                     shape_map[token_shape] = len(shape_map)
 
-                # token_str_normalized_char = re.sub(r'\W', '.', token_str_normalized)
-                # num_chars = len(token_str_normalized_char)
-
-                # for c_i in char_indices:
-                #     if c_i < num_chars and -c_i <= num_chars and token_str_normalized_char[c_i] not in char_map:
-                #         char_map[token_str_normalized_char[c_i]] = len(char_map)
                 # Don't use normalized token str -- want digits
                 for char in token_str:
                     if char not in char_map and update_chars:
                         char_map[char] = len(char_map)
                         char_int_str_map[char_map[char]] = char
                 tok_lens.append(len(token_str))
-                # tok_strs.append(token_str)
 
                 # convert label to BILOU encoding
                 label_bilou = label_str
@@ -247,32 +205,13 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
         elif current_sent_len > 0:
             sent_lens.append(current_sent_len)
             current_sent_len = 0
-
-            if FLAGS.start_end:
-                tokens[idx:idx+pad_width] = token_map[SENT_END]
-                shapes[idx:idx+pad_width] = shape_map[SENT_END]
-                chars[char_start:char_start+pad_width] = char_map[SENT_END]
-                char_start += pad_width
-                tok_lens.extend([1] * pad_width)
-                labels.extend([SENT_END] * pad_width)
-                idx += pad_width
-
-                if i != len(lines)-1:
-                    tokens[idx:idx+pad_width] = token_map[SENT_START]
-                    shapes[idx:idx+pad_width] = shape_map[SENT_START]
-                    chars[char_start:char_start + pad_width] = char_map[SENT_START]
-                    char_start += pad_width
-                    tok_lens.extend([1] * pad_width)
-                    labels.extend([SENT_START]*pad_width)
-                    idx += pad_width
-            else:
-                tokens[idx:idx + pad_width] = token_map[PAD_STR]
-                shapes[idx:idx + pad_width] = shape_map[PAD_STR]
-                chars[char_start:char_start + pad_width] = char_map[PAD_STR]
-                char_start += pad_width
-                tok_lens.extend([1] * pad_width)
-                labels.extend([PAD_STR if FLAGS.predict_pad else "O"] * pad_width)
-                idx += pad_width
+            tokens[idx:idx + pad_width] = token_map[PAD_STR]
+            shapes[idx:idx + pad_width] = shape_map[PAD_STR]
+            chars[char_start:char_start + pad_width] = char_map[PAD_STR]
+            char_start += pad_width
+            tok_lens.extend([1] * pad_width)
+            labels.extend([PAD_STR if FLAGS.predict_pad else "O"] * pad_width)
+            idx += pad_width
 
             last_label = "O"
 

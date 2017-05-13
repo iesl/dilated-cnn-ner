@@ -16,11 +16,6 @@ if [[ "$viterbi" == "true" ]]; then
     viterbi_param="--viterbi"
 fi
 
-layers2_param=""
-if [[ "$layers2" != "" ]]; then
-    layers2_param="--layers2 \"$layers2\""
-fi
-
 doc_param=""
 if [[ "$documents" == "true" ]]; then
     doc_param="--documents"
@@ -29,11 +24,6 @@ fi
 predict_pad_param=""
 if [[ "$predict_pad" == "true" ]]; then
     predict_pad_param="--predict_pad"
-fi
-
-start_end_param=""
-if [[ "$start_end" == "true" ]]; then
-    predict_pad_param="--start_end"
 fi
 
 load_pretrained_param=""

@@ -7,6 +7,7 @@ import os
 import sys
 import tensorflow as tf
 import numpy as np
+from os import listdir
 
 tf.app.flags.DEFINE_string('in_file', 'naacl-data.tsv', 'tsv file containing string data')
 tf.app.flags.DEFINE_string('vocab', '', 'file containing vocab (empty means make new vocab)')
@@ -21,7 +22,6 @@ tf.app.flags.DEFINE_string('out_dir', '', 'export tf protos')
 tf.app.flags.DEFINE_integer('window_size', 3, 'window size (for computing padding)')
 tf.app.flags.DEFINE_boolean('lowercase', False, 'whether to lowercase')
 
-tf.app.flags.DEFINE_boolean('start_end', False, 'whether to use distinct start/end padding')
 tf.app.flags.DEFINE_boolean('debug', False, 'print debugging output')
 
 tf.app.flags.DEFINE_boolean('predict_pad', False, 'whether to predict padding labels')
@@ -32,12 +32,12 @@ tf.app.flags.DEFINE_boolean('update_maps', False, 'whether to update maps')
 
 tf.app.flags.DEFINE_string('update_vocab', '', 'file to update vocab with tokens from training data')
 
+tf.app.flags.DEFINE_string('dataset', 'conll', 'which dataset')
+
 
 FLAGS = tf.app.flags.FLAGS
 
 ZERO_STR = "<ZERO>"
-# PAD_STR = "PADDING"
-# OOV_STR = "UNKNOWN"
 PAD_STR = "<PAD>"
 OOV_STR = "<OOV>"
 NONE_STR = "<NONE>"
@@ -46,10 +46,9 @@ SENT_END = "</S>"
 
 pad_strs = [PAD_STR, SENT_START, SENT_END, ZERO_STR, NONE_STR]
 
-DOC_MARKER = "-DOCSTART-"
-
-# indices of characters to grab: first and last 4
-# char_indices = [0, 1, 2, 3, -1, -2, -3, -4]
+DOC_MARKER_CONLL = "-DOCSTART-"
+DOC_MARKER_ONTONOTES = "#begin document"
+DOC_MARKER = DOC_MARKER_CONLL if FLAGS.dataset == "conll" else DOC_MARKER_ONTONOTES
 
 label_int_str_map = {}
 token_int_str_map = {}
@@ -71,23 +70,31 @@ def shape(string):
     else:
         return "a"
 
-    # upper = 'A'
-    # lower = 'a'
-    # digit = '0'
-    # symbol = '.'
-    # shape_str = ""
-    # for c in string:
-    #     if c.isupper():
-    #         shape_c = upper
-    #     elif c.islower():
-    #         shape_c = lower
-    #     elif c == digit:
-    #         shape_c = digit
-    #     else:
-    #         shape_c = symbol
-    #     if shape_str == "" or shape_c != shape_str[-1]:
-    #         shape_str += shape_c
-    # return shape_str
+
+def get_str_label_from_line_conll(line):
+    token_str, _, _, label_str = line.strip().split(' ')
+    return token_str, label_str, ''
+
+
+def get_str_label_from_line_ontonotes(line, current_tag):
+    parts = line.split()
+    token_str = parts[3]
+    onto_label_str = parts[10]
+    if onto_label_str.startswith('('):
+        if onto_label_str.endswith(')'):
+            label_str = 'U-%s' % onto_label_str[1:-1]
+            current_tag = ''
+        else:
+            current_tag = onto_label_str[1:-1]
+            label_str = 'B-%s' % current_tag
+    elif onto_label_str.endswith(')'):
+        label_str = 'L-%s' % current_tag
+        current_tag = ''
+    elif current_tag != '':
+        label_str = 'I-%s' % current_tag
+    else:
+        label_str = 'O'
+    return token_str, label_str, current_tag
 
 
 def make_example(writer, lines, label_map, token_map, shape_map, char_map, update_vocab, update_chars):
@@ -105,20 +112,11 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
     num_breaks = sum([1 if line.strip() == "" else 0 for line in lines])
     max_len_with_pad = pad_width * (num_breaks + (1 if FLAGS.start_end else 2)) * (2 if FLAGS.start_end else 1) + (sent_len - num_breaks)
     max_word_len = max(map(len, lines))
-    # print("Processing %s w/ %d lines %d breaks; max len w/ pad: %d" % ("doc" if FLAGS.documents else "sent", sent_len, num_breaks, max_len_with_pad))
-
-    # max_len_with_pad = FLAGS.max_len if FLAGS.documents else FLAGS.max_len + (FLAGS.window_size - 1) # assumes odd window size
-
 
     oov_count = 0
     if sent_len == 0:
         return 0, 0, 0
 
-    # if sent_len > FLAGS.max_len:
-    #     print("Skipping sentence w/ %d tokens ( > max len %d)" % (sent_len, FLAGS.max_len))
-    #     return 0, 0, 0
-    # else:
-    # zero pad
     tokens = np.zeros(max_len_with_pad, dtype=np.int64)
     shapes = np.zeros(max_len_with_pad, dtype=np.int64)
     chars = np.zeros(max_len_with_pad*max_word_len, dtype=np.int64)
@@ -127,35 +125,26 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
     tok_lens = []
 
     # initial padding
-    if FLAGS.start_end:
-        tokens[:pad_width] = token_map[SENT_START]
-        shapes[:pad_width] = shape_map[SENT_START]
-        chars[:pad_width] = char_map[SENT_START]
-        if FLAGS.predict_pad:
-            intmapped_labels[:pad_width] = label_map[SENT_START]
-    else:
-        tokens[:pad_width] = token_map[PAD_STR]
-        shapes[:pad_width] = shape_map[PAD_STR]
-        chars[:pad_width] = char_map[PAD_STR]
-        if FLAGS.predict_pad:
-            intmapped_labels[:pad_width] = label_map[PAD_STR]
+    tokens[:pad_width] = token_map[PAD_STR]
+    shapes[:pad_width] = shape_map[PAD_STR]
+    chars[:pad_width] = char_map[PAD_STR]
+    if FLAGS.predict_pad:
+        intmapped_labels[:pad_width] = label_map[PAD_STR]
     tok_lens.extend([1]*pad_width)
 
     last_label = "O"
     labels = []
-    # for k in range(pad_width):
-    #     intmapped_labels[k] = label_map[SENT_START]
     current_sent_len = 0
     char_start = pad_width
     idx = pad_width
+    current_tag = ''
     for i, line in enumerate(lines):
-
+        line = line.strip()
         if line:
-            token_str, _, _, label_str = line.strip().split(' ')
+            token_str, label_str, current_tag = get_str_label_from_line_conll(line) if FLAGS.dataset == 'conll' else get_str_label_from_line_ontonotes(line, current_tag)
 
             # skip docstart markers
             if token_str == DOC_MARKER:
-                # print("doc marker")
                 return 0, 0, 0
 
             current_sent_len += 1
@@ -168,19 +157,11 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
             # get capitalization features
             token_shape = shape(token_str_digits)
 
-            # print(token_str_digits, token_shape)
-
             token_str_normalized = token_str_digits.lower() if FLAGS.lowercase else token_str_digits
 
-            if token_shape not in shape_map:#  and update_vocab:
+            if token_shape not in shape_map:
                 shape_map[token_shape] = len(shape_map)
 
-            # token_str_normalized_char = re.sub(r'\W', '.', token_str_normalized)
-            # num_chars = len(token_str_normalized_char)
-
-            # for c_i in char_indices:
-            #     if c_i < num_chars and -c_i <= num_chars and token_str_normalized_char[c_i] not in char_map:
-            #         char_map[token_str_normalized_char[c_i]] = len(char_map)
             # Don't use normalized token str -- want digits
             for char in token_str:
                 if char not in char_map and update_chars:
@@ -207,43 +188,22 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
                     token_int_str_map[token_map[token_str_normalized]] = token_str_normalized
 
             tokens[idx] = token_map.get(token_str_normalized, token_map[OOV_STR])
-            shapes[idx] = shape_map[token_shape] # if update_vocab else shape_map.get(token_shape, shape_map[token_shape[0]])
+            shapes[idx] = shape_map[token_shape]
             chars[char_start:char_start+tok_lens[-1]] = [char_map.get(char, char_map[OOV_STR]) for char in token_str]
             char_start += tok_lens[-1]
             labels.append(label_bilou)
             last_label = label_bilou
-            # tmp.append(label_str)
-            # toks_tmp.append(token_str_normalized)
             idx += 1
         elif current_sent_len > 0:
             sent_lens.append(current_sent_len)
             current_sent_len = 0
-
-            if FLAGS.start_end:
-                tokens[idx:idx+pad_width] = token_map[SENT_END]
-                shapes[idx:idx+pad_width] = shape_map[SENT_END]
-                chars[char_start:char_start+pad_width] = char_map[SENT_END]
-                char_start += pad_width
-                tok_lens.extend([1] * pad_width)
-                labels.extend([SENT_END] * pad_width)
-                idx += pad_width
-
-                if i != len(lines)-1:
-                    tokens[idx:idx+pad_width] = token_map[SENT_START]
-                    shapes[idx:idx+pad_width] = shape_map[SENT_START]
-                    chars[char_start:char_start + pad_width] = char_map[SENT_START]
-                    char_start += pad_width
-                    tok_lens.extend([1] * pad_width)
-                    labels.extend([SENT_START]*pad_width)
-                    idx += pad_width
-            else:
-                tokens[idx:idx + pad_width] = token_map[PAD_STR]
-                shapes[idx:idx + pad_width] = shape_map[PAD_STR]
-                chars[char_start:char_start + pad_width] = char_map[PAD_STR]
-                char_start += pad_width
-                tok_lens.extend([1] * pad_width)
-                labels.extend([PAD_STR if FLAGS.predict_pad else "O"] * pad_width)
-                idx += pad_width
+            tokens[idx:idx + pad_width] = token_map[PAD_STR]
+            shapes[idx:idx + pad_width] = shape_map[PAD_STR]
+            chars[char_start:char_start + pad_width] = char_map[PAD_STR]
+            char_start += pad_width
+            tok_lens.extend([1] * pad_width)
+            labels.extend([PAD_STR if FLAGS.predict_pad else "O"] * pad_width)
+            idx += pad_width
 
             last_label = "O"
 
@@ -284,7 +244,7 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
 
     # print(sent_lens)
 
-    padded_len = (2 if FLAGS.start_end else 1)*(len(sent_lens)+(0 if FLAGS.start_end else 1))*pad_width+sum(sent_lens)
+    padded_len = (len(sent_lens)+1)*pad_width+sum(sent_lens)
     intmapped_labels = intmapped_labels[:padded_len]
     tokens = tokens[:padded_len]
     shapes = shapes[:padded_len]
@@ -323,27 +283,11 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
     for tok_len in tok_lens:
         fl_tok_len.feature.add().int64_list.value.append(tok_len)
 
-    # example = tf.train.Example(features=tf.train.Features(feature={
-    #     'labels': _int64_feature(intmapped_labels),
-    #     'tokens': _int64_feature(tokens),
-    #     'shapes': _int64_feature(shapes),
-    #     'chars': _int64_feature(chars),
-    #     'seq_len': _int64_feature(sent_lens if FLAGS.documents else [sent_len])
-    # }))
-
     writer.write(example.SerializeToString())
     return sum(sent_lens), oov_count, 1
 
 
 def tsv_to_examples():
-    # label_map = {ZERO_STR: 0}
-    # label_int_str_map[0] = ZERO_STR
-    # # embedding_map = {ZERO_STR: 0, PAD_STR: 1, OOV_STR: 2}
-    # token_map = {ZERO_STR: 0, OOV_STR: 1}
-    # token_int_str_map[0] = ZERO_STR
-    # token_int_str_map[1] = OOV_STR
-    # shape_map = {ZERO_STR: 0}
-    # char_map = {ZERO_STR: 0, NONE_STR: 1}
     label_map = {}
     token_map = {}
     shape_map = {}
@@ -352,50 +296,19 @@ def tsv_to_examples():
     update_vocab = True
     update_chars = True
 
-    if FLAGS.start_end:
-        token_map[SENT_START] = len(token_map)
-        token_int_str_map[token_map[SENT_START]] = SENT_START
-        shape_map[SENT_START] = len(shape_map)
-        char_map[SENT_START] = len(char_map)
-        char_int_str_map[char_map[SENT_START]] = SENT_START
-        if FLAGS.predict_pad:
-            label_map[SENT_START] = len(label_map)
-            label_int_str_map[label_map[SENT_START]] = SENT_START
-        token_map[SENT_END] = len(token_map)
-        token_int_str_map[token_map[SENT_END]] = SENT_END
-        shape_map[SENT_END] = len(shape_map)
-        char_map[SENT_END] = len(char_map)
-        char_int_str_map[char_map[SENT_END]] = SENT_END
-        if FLAGS.predict_pad:
-            label_map[SENT_END] = len(label_map)
-            label_int_str_map[label_map[SENT_END]] = SENT_END
-
-    else:
-        token_map[PAD_STR] = len(token_map)
-        token_int_str_map[token_map[PAD_STR]] = PAD_STR
-        char_map[PAD_STR] = len(char_map)
-        char_int_str_map[char_map[PAD_STR]] = PAD_STR
-        shape_map[PAD_STR] = len(shape_map)
-        if FLAGS.predict_pad:
-            label_map[PAD_STR] = len(label_map)
-            label_int_str_map[label_map[PAD_STR]] = PAD_STR
+    token_map[PAD_STR] = len(token_map)
+    token_int_str_map[token_map[PAD_STR]] = PAD_STR
+    char_map[PAD_STR] = len(char_map)
+    char_int_str_map[char_map[PAD_STR]] = PAD_STR
+    shape_map[PAD_STR] = len(shape_map)
+    if FLAGS.predict_pad:
+        label_map[PAD_STR] = len(label_map)
+        label_int_str_map[label_map[PAD_STR]] = PAD_STR
 
     token_map[OOV_STR] = len(token_map)
     token_int_str_map[token_map[OOV_STR]] = OOV_STR
     char_map[OOV_STR] = len(char_map)
     char_int_str_map[char_map[OOV_STR]] = OOV_STR
-
-    # load embeddings if we have them
-    # if FLAGS.embeddings != '':
-    #     with open(FLAGS.embeddings, 'r') as f:
-    #         for line in f.readlines():
-    #             # word, idx = line.strip().split("\t")
-    #             # token_map[word] = int(idx)
-    #             word = line.strip().split(" ")[0]
-    #             if word not in token_map:
-    #                 # print("adding word %s" % word)
-    #                 embedding_map[word] = len(embedding_map)
-
 
     # load vocab if we have one
     if FLAGS.vocab != '':
@@ -403,8 +316,6 @@ def tsv_to_examples():
         with open(FLAGS.vocab, 'r') as f:
             for line in f.readlines():
                 word = line.strip().split(" ")[0]
-                # token_map[word] = int(idx)
-                # word = line.strip().split("\t")[0]
                 if word not in token_map:
                     # print("adding word %s" % word)
                     token_map[word] = len(token_map)
@@ -446,66 +357,130 @@ def tsv_to_examples():
     num_sentences = 0
     num_oov = 0
     num_docs = 0
-    if not os.path.exists(FLAGS.out_dir):
-        print("Output directory not found: %s" % FLAGS.out_dir)
-    writer = tf.python_io.TFRecordWriter(FLAGS.out_dir + '/examples.proto')
-    with open(FLAGS.in_file) as f:
-        line_buf = []
-        line = f.readline()
-        line_idx = 1
-        while line:
-            line = line.strip()
 
-            if FLAGS.documents:
-                if line.split(" ")[0] == DOC_MARKER:
-                    if line_buf:
-                        # reached the end of a document; process the lines
+    # TODO refactor this!!!
+    if FLAGS.dataset == "conll":
+        if not os.path.exists(FLAGS.out_dir):
+            print("Output directory not found: %s" % FLAGS.out_dir)
+        writer = tf.python_io.TFRecordWriter(FLAGS.out_dir + '/examples.proto')
+        with open(FLAGS.in_file) as f:
+            line_buf = []
+            line = f.readline()
+            line_idx = 1
+            while line:
+                line = line.strip()
+
+                if FLAGS.documents:
+                    if line.split(" ")[0] == DOC_MARKER:
+                        if line_buf:
+                            # reached the end of a document; process the lines
+                            toks, oov, sent = make_example(writer, line_buf, label_map, token_map, shape_map, char_map, update_vocab, update_chars)
+                            num_tokens += toks
+                            num_oov += oov
+                            num_sentences += sent
+                            num_docs += 1
+                            line_buf = []
+                    else:
+                        # print(line)
+                        line_buf.append(line)
+                        line_idx += 1
+
+                else:
+                    # if the line is not empty, add it to the buffer
+                    if line:
+                        line_buf.append(line)
+                        line_idx += 1
+                    # otherwise, if there's stuff in the buffer, process it
+                    elif line_buf:
+                        # reached the end of a sentence; process the line
                         toks, oov, sent = make_example(writer, line_buf, label_map, token_map, shape_map, char_map, update_vocab, update_chars)
                         num_tokens += toks
                         num_oov += oov
                         num_sentences += sent
-                        num_docs += 1
                         line_buf = []
-                else:
-                    # print(line)
-                    line_buf.append(line)
-                    line_idx += 1
-
-            else:
-                # if the line is not empty, add it to the buffer
-                if line:
-                    line_buf.append(line)
-                    line_idx += 1
-                # otherwise, if there's stuff in the buffer, process it
-                elif line_buf:
-                    # reached the end of a sentence; process the line
-                    toks, oov, sent = make_example(writer, line_buf, label_map, token_map, shape_map, char_map, update_vocab, update_chars)
-                    num_tokens += toks
-                    num_oov += oov
-                    num_sentences += sent
-                    line_buf = []
-            # print("reading line %d" % line_idx)
-            line = f.readline()
-        if line_buf:
-            make_example(writer, line_buf, label_map, token_map, shape_map, char_map, update_vocab, update_chars)
+                # print("reading line %d" % line_idx)
+                line = f.readline()
+            if line_buf:
+                make_example(writer, line_buf, label_map, token_map, shape_map, char_map, update_vocab, update_chars)
         writer.close()
 
+        # export the string->int maps to file
+        for f_str, id_map in [('label', label_map), ('token', token_map), ('shape', shape_map), ('char', char_map)]:
+            with open(FLAGS.out_dir + '/' + f_str + '.txt', 'w') as f:
+                [f.write(s + '\t' + str(i) + '\n') for (s, i) in id_map.items()]
+
+        # export data sizes to file
+        with open(FLAGS.out_dir + "/sizes.txt", 'w') as f:
+            print(num_sentences, file=f)
+            print(num_tokens, file=f)
+            print(num_docs, file=f)
+
+    else:
+        if not os.path.exists(FLAGS.out_dir + "/protos"):
+            print("Output directory not found: %s" % FLAGS.out_dir)
+        data_type = FLAGS.in_file.strip().split("/")[-1]
+        writer = tf.python_io.TFRecordWriter('%s/protos/%s_examples.proto' % (FLAGS.out_dir, data_type))
+        for fname in listdir(FLAGS.in_file):
+            with open(FLAGS.in_file + "/" + fname) as f:
+                line_buf = []
+                line = f.readline()
+                line_idx = 1
+                while line:
+                    line = line.strip()
+
+                    if FLAGS.documents:
+                        if line.startswith("#"):
+                            if line_buf:
+                                # reached the end of a document; process the lines
+                                toks, oov, sent = make_example(writer, line_buf, label_map, token_map, shape_map,
+                                                               char_map, update_vocab, update_chars)
+                                num_tokens += toks
+                                num_oov += oov
+                                num_sentences += sent
+                                num_docs += 1
+                                line_buf = []
+                        else:
+                            # print(line)
+                            if line_buf or (not line_buf and line):
+                                line_buf.append(line)
+                                line_idx += 1
+
+
+                    else:
+                        # if the line is not empty, add it to the buffer
+                        if line:
+                            if not line.startswith("#"):
+                                line_buf.append(line)
+                                line_idx += 1
+                        # otherwise, if there's stuff in the buffer, process it
+                        elif line_buf:
+                            # reached the end of a sentence; process the line
+                            toks, oov, sent = make_example(writer, line_buf, label_map, token_map, shape_map, char_map,
+                                                           update_vocab, update_chars)
+                            num_tokens += toks
+                            num_oov += oov
+                            num_sentences += sent
+                            line_buf = []
+                    # print("reading line %d" % line_idx)
+                    line = f.readline()
+                if line_buf:
+                    make_example(writer, line_buf, label_map, token_map, shape_map, char_map, update_vocab,
+                                 update_chars)
+                    # print("Processed %d sentences" % num_sentences)
+        writer.close()
+
+        # export the string->int maps to file
+        for f_str, id_map in [('label', label_map), ('token', token_map), ('shape', shape_map), ('char', char_map)]:
+            with open("%s/%s.txt" % (FLAGS.out_dir, f_str), 'w') as f:
+                [f.write(s + '\t' + str(i) + '\n') for (s, i) in id_map.items()]
+
+        # export data sizes to file
+        with open("%s/%s_sizes.txt" % (FLAGS.out_dir, data_type), 'w') as f:
+            print(num_sentences, file=f)
+            print(num_tokens, file=f)
+            print(num_docs, file=f)
+
     print("Embeddings coverage: %2.2f%%" % ((1-(num_oov/num_tokens)) * 100))
-
-    # remove padding from label domain
-    # filtered_label_map = label_map if FLAGS.predict_pad else \
-    #     {label_str: label_map[label_str] for label_str in label_map.keys() if label_str not in pad_strs}
-
-    # export the string->int maps to file
-    for f_str, id_map in [('label', label_map), ('token', token_map), ('shape', shape_map), ('char', char_map)]:
-        with open(FLAGS.out_dir + '/' + f_str + '.txt', 'w') as f:
-            [f.write(s + '\t' + str(i) + '\n') for (s, i) in id_map.items()]
-
-    # export data sizes to file
-    with open(FLAGS.out_dir + "/sizes.txt", 'w') as f:
-        print(num_sentences, file=f)
-        print(num_tokens, file=f)
-        print(num_docs, file=f)
 
 
 def main(argv):
