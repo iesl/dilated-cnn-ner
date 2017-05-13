@@ -4,6 +4,7 @@ import time
 import numpy as np
 import sys
 
+
 def is_start(curr):
     return curr[0] == "B" or curr[0] == "U"
 
@@ -35,10 +36,8 @@ def segment_eval(batches, predictions, label_map, type_int_int_map, labels_id_st
     gold_counts = {t: 0 for t in label_map.values()}
     correct_counts = {t: 0 for t in label_map.values()}
     token_count = 0
-    boundary_viols = 0
-    type_viols = 0
     # iterate over batches
-    for predictions, (dev_label_batch, dev_token_batch, dev_shape_batch, dev_char_batch, dev_seq_len_batch, dev_tok_len_batch, mask_batch) in zip(predictions, batches):
+    for predictions, (dev_label_batch, dev_token_batch, _, _, dev_seq_len_batch, _, _) in zip(predictions, batches):
         # iterate over examples in batch
         for preds, labels, tokens, seq_lens in zip(predictions, dev_label_batch, dev_token_batch, dev_seq_len_batch):
             start = pad_width
@@ -95,6 +94,8 @@ def segment_eval(batches, predictions, label_map, type_int_int_map, labels_id_st
     f1s = [2 * precision * recall / (recall + precision) if recall + precision != 0 else 0.0 for precision, recall in
            zip(precisions, recalls)]
 
+    print(gold_counts)
+
     precision_macro = np.mean(precisions[np.where(gold_counts != 0)[0]])
     recall_macro = np.mean(recalls[np.where(gold_counts != 0)[0]])
     f1_macro = 2 * precision_macro * recall_macro / (precision_macro + recall_macro)
@@ -114,7 +115,6 @@ def segment_eval(batches, predictions, label_map, type_int_int_map, labels_id_st
         if idx not in outside_idx:
             print("%10s\t%2.2f\t%2.2f\t%2.2f" % (t, f1s[idx] * 100, precisions[idx] * 100, recalls[idx] * 100))
     print("Processed %d tokens with %d phrases; found: %d phrases; correct: %d." % (token_count, all_gold, all_pred, all_correct))
-    print("Found %d type violations, %d boundary violations." % (type_viols, boundary_viols))
     sys.stdout.flush()
     return f1_micro, precision_micro
 
