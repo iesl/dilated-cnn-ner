@@ -8,8 +8,8 @@ import tf_utils
 class CNN(object):
 
     def __init__(self, num_classes, vocab_size, shape_domain_size, char_domain_size, char_size, embedding_size,
-                 shape_size, nonlinearity, layers_map, viterbi, projection,
-                 loss, margin, repeats, share_repeats, char_embeddings, embeddings=None):
+                 shape_size, nonlinearity, layers_map, viterbi, projection, loss, margin, repeats, share_repeats,
+                 char_embeddings, embeddings=None):
 
         self.num_classes = num_classes
         self.shape_domain_size = shape_domain_size
@@ -29,25 +29,19 @@ class CNN(object):
 
         # word embedding input
         self.input_x1 = tf.placeholder(tf.int64, [None, None], name="input_x1")
-        self.input_x1_sample_pad = tf.placeholder_with_default([[0]], [None, None], name="input_x1_sample_pad")
 
         # shape embedding input
         self.input_x2 = tf.placeholder(tf.int64, [None, None], name="input_x2")
-        self.input_x2_sample_pad = tf.placeholder_with_default([[0]], [None, None], name="input_x2_sample_pad")
 
         # labels
         self.input_y = tf.placeholder(tf.int64, [None, None], name="input_y")
-        self.input_y_sample_pad = tf.placeholder_with_default([[0]], [None, None], name="input_y_sample_pad")
-
 
         # padding mask
         self.input_mask = tf.placeholder(tf.float32, [None, None], name="input_mask")
-        self.input_mask_sample_pad = tf.placeholder_with_default([[0]], [None, None], name="input_mask_sample_pad")
 
         # dims
         self.batch_size = tf.placeholder(tf.int32, None, name="batch_size")
         self.max_seq_len = tf.placeholder(tf.int32, None, name="max_seq_len")
-        self.sample_pad_max_seq_len = tf.placeholder_with_default(0, None, name="sample_pad_max_seq_len")
 
         # sequence lengths
         self.sequence_lengths = tf.placeholder(tf.int32, [None, None], name="sequence_lengths")
@@ -57,7 +51,6 @@ class CNN(object):
         self.input_dropout_keep_prob = tf.placeholder_with_default(1.0, [], name="input_dropout_keep_prob")
         self.middle_dropout_keep_prob = tf.placeholder_with_default(1.0, [], name="middle_dropout_keep_prob")
         self.training = tf.placeholder_with_default(False, [], name="training")
-
 
         self.l2_penalty = tf.placeholder_with_default(0.0, [], name="l2_penalty")
         self.drop_penalty = tf.placeholder_with_default(0.0, [], name="drop_penalty")
@@ -156,8 +149,8 @@ class CNN(object):
         loss += self.drop_penalty * drop_loss
         return loss
 
-    def forward(self, input_x1, input_x2, max_seq_len, hidden_dropout_keep_prob,
-                      input_dropout_keep_prob, middle_dropout_keep_prob, reuse=True):
+    def forward(self, input_x1, input_x2, max_seq_len, hidden_dropout_keep_prob, input_dropout_keep_prob,
+                middle_dropout_keep_prob, reuse=True):
 
         block_unflat_scores = []
 
