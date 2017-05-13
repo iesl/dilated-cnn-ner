@@ -404,7 +404,7 @@ def main(argv):
                     num_sentences_batch = np.sum(seq_len_batch != 0, axis=1)
 
                     mask_batch = np.zeros((batch_size, batch_seq_len)).astype("int")
-                    actual_seq_lens = np.add(np.sum(seq_len_batch, axis=1), (2 if FLAGS.start_end else 1) * pad_width * (num_sentences_batch + (0 if FLAGS.start_end else 1)))
+                    actual_seq_lens = np.add(np.sum(seq_len_batch, axis=1), (2 if FLAGS.start_end else 1) * pad_width * (num_sentences_batch + (0 if FLAGS.start_end else 1))).astype('int')
                     for i, seq_len in enumerate(actual_seq_lens):
                         mask_batch[i, :seq_len] = 1
                     examples += batch_size
