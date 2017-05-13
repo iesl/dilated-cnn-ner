@@ -52,8 +52,6 @@ cmd="python src/train.py \
 --num_filters $num_filters \
 --input_dropout $input_dropout \
 --hidden_dropout $hidden_dropout \
---input2_dropout $input2_dropout \
---hidden2_dropout $hidden2_dropout \
 --middle_dropout $middle_dropout \
 --word_dropout $word_dropout \
 --lr $lr \
@@ -67,27 +65,16 @@ cmd="python src/train.py \
 --layers \"$layers\" \
 --model $model \
 --clip_norm $clip_grad \
---regularize_pad_penalty $pad_penalty \
 --regularize_drop_penalty $drop_penalty \
---context_regularize_drop_penalty $context_drop_penalty \
---max_additional_pad $max_addl_pad \
---update_frontend $update_frontend \
---frontend_residual_layers $frontend_residuals \
---context_residual_layers $context_residuals \
 --projection $do_projection \
---frontend_batch_norm $frontend_batch_norm \
---context_batch_norm $context_batch_norm \
---pad_samples_per_example $pad_samples_per_example \
 --margin $margin \
 --loss $loss \
 --epsilon $epsilon \
 --beta2 $beta2 \
 --char_model $char_model \
 --block_repeats $block_repeats \
---pool_blocks $pool_blocks \
 --share_repeats $share_repeats \
 --max_epochs $max_epochs \
---fancy_blocks $fancy_blocks \
 $doc_param \
 $start_end_param \
 $predict_pad_param \
