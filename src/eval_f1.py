@@ -89,8 +89,8 @@ def segment_eval(batches, predictions, label_map, type_int_int_map, labels_id_st
     all_pred = np.sum([p if i not in outside_idx else 0 for i, p in enumerate(pred_counts.values())])
     all_gold = np.sum([p if i not in outside_idx else 0 for i, p in enumerate(gold_counts.values())])
 
-    precisions = [correct_counts[i] / pred_counts[i] if pred_counts[i] != 0 else 0.0 for i in pred_counts.keys()]
-    recalls = [correct_counts[i] / gold_counts[i] if gold_counts[i] != 0 else 1.0 for i in gold_counts.keys()]
+    precisions = np.array([correct_counts[i] / pred_counts[i] if pred_counts[i] != 0 else 0.0 for i in pred_counts.keys()])
+    recalls = np.array([correct_counts[i] / gold_counts[i] if gold_counts[i] != 0 else 1.0 for i in gold_counts.keys()])
     f1s = [2 * precision * recall / (recall + precision) if recall + precision != 0 else 0.0 for precision, recall in
            zip(precisions, recalls)]
 
@@ -101,7 +101,7 @@ def segment_eval(batches, predictions, label_map, type_int_int_map, labels_id_st
     in_indices = np.where(np.array(gold_counts.values()) != 0)[0]
     print("in indices", in_indices)
 
-    precision_macro = np.mean(precisions[np.array(in_indices)])
+    precision_macro = np.mean(precisions[in_indices])
     recall_macro = np.mean(recalls[in_indices])
     f1_macro = 2 * precision_macro * recall_macro / (precision_macro + recall_macro)
 
