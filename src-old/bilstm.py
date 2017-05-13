@@ -74,7 +74,7 @@ class BiLSTM(object):
         self.w_e = tf_utils.initialize_embeddings(word_embeddings_shape, name="w_e", pretrained=embeddings)
 
         nonzero_elements = tf.not_equal(self.sequence_lengths, tf.zeros_like(self.sequence_lengths))
-        count_nonzero_per_row = tf.reduce_sum(tf.to_int32(nonzero_elements), axis=1)
+        count_nonzero_per_row = tf.reduce_sum(tf.to_int32(nonzero_elements), reduction_indices=1)
         self.flat_sequence_lengths = tf.add(tf.reduce_sum(self.sequence_lengths, 1), tf.scalar_mul(2, count_nonzero_per_row))
 
         self.unflat_scores, self.hidden_layer = self.forward(self.input_x1, self.input_x2, self.max_seq_len,
@@ -90,14 +90,14 @@ class BiLSTM(object):
                 self.loss = tf.reduce_mean(-log_likelihood)
             else:
                 losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.unflat_scores, labels=labels)
-                masked_losses = tf.multiply(losses, self.input_mask)
+                masked_losses = tf.mul(losses, self.input_mask)
                 self.loss = tf.div(tf.reduce_sum(masked_losses), tf.reduce_sum(self.input_mask))
             self.loss += self.l2_penalty * self.l2_loss
 
             self.unflat_no_dropout_scores, _ = self.forward(self.input_x1, self.input_x2, self.max_seq_len,
                                                          1.0, 1.0, 1.0)
 
-            drop_loss = tf.nn.l2_loss(tf.subtract(self.unflat_scores, self.unflat_no_dropout_scores))
+            drop_loss = tf.nn.l2_loss(tf.sub(self.unflat_scores, self.unflat_no_dropout_scores))
             self.loss += self.drop_penalty * drop_loss
 
         # Accuracy
@@ -125,7 +125,7 @@ class BiLSTM(object):
                 input_list.append(shape_embeddings)
                 input_size += self.shape_size
 
-            input_feats = tf.concat(axis=2, values=input_list)
+            input_feats = tf.concat(2, input_list)
             # self.input_feats_expanded = tf.expand_dims(self.input_feats, 1)
             input_feats_expanded_drop = tf.nn.dropout(input_feats, input_dropout_keep_prob)
 
@@ -139,7 +139,7 @@ class BiLSTM(object):
                                                                  inputs=input_feats_expanded_drop,
                                                                  parallel_iterations=50,
                                                                  sequence_length=self.flat_sequence_lengths)
-                hidden_outputs = tf.concat(axis=2, values=lstm_outputs)
+                hidden_outputs = tf.concat(2, lstm_outputs)
 
             h_concat_flat = tf.reshape(hidden_outputs, [-1, total_output_width])
 
@@ -167,5 +167,5 @@ class BiLSTM(object):
                 self.l2_loss += tf.nn.l2_loss(w_o)
                 self.l2_loss += tf.nn.l2_loss(b_o)
                 scores = tf.nn.xw_plus_b(h2_drop, w_o, b_o, name="scores")
-                unflat_scores = tf.reshape(scores, tf.stack([self.batch_size, max_seq_len, self.num_classes]))
+                unflat_scores = tf.reshape(scores, tf.pack([self.batch_size, max_seq_len, self.num_classes]))
         return unflat_scores, hidden_outputs

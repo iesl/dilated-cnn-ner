@@ -11,7 +11,7 @@ def gather_nd(params, indices, shape=None, name=None):
     rank = len(shape)
     flat_params = tf.reshape(params, [-1])
     multipliers = [reduce(lambda x, y: x * y, shape[i + 1:], 1) for i in range(0, rank)]
-    indices_unpacked = tf.unstack(tf.cast(tf.transpose(indices, [rank - 1] + range(0, rank - 1), name), 'int32'))
+    indices_unpacked = tf.unpack(tf.cast(tf.transpose(indices, [rank - 1] + range(0, rank - 1), name), 'int32'))
     flat_indices = sum([a * b for a, b in zip(multipliers, indices_unpacked)])
     return tf.gather(flat_params, flat_indices, name=name)
 
@@ -58,7 +58,7 @@ def initialize_embeddings(shape, name, pretrained=None, old=False):
         embeddings = embedding_values(shape, old)
     else:
         embeddings = pretrained
-    return tf.concat(axis=0, values=[zero_pad, tf.get_variable(name=name, initializer=embeddings)])
+    return tf.concat(0, [zero_pad, tf.get_variable(name=name, initializer=embeddings)])
 
 
 def initialize_weights(shape, name, init_type, gain="1.0", divisor=1.0):
@@ -122,7 +122,7 @@ def residual_layer(input, w, b, dilation, nonlinearity, batch_norm, name, batch_
         b_r = tf.get_variable("b_r_" + name, initializer=tf.constant(0.01, shape=[conv_shape[-1]]))
         input_projected = tf.nn.xw_plus_b(input, w_r, b_r, name="proj_r_" + name)
         # if len(output_shape) != 2:
-        input_projected = tf.reshape(input_projected, tf.stack([batch_size, 1, max_sequence_len, tf.to_int32(conv_shape[-1])]))
+        input_projected = tf.reshape(input_projected, tf.pack([batch_size, 1, max_sequence_len, tf.to_int32(conv_shape[-1])]))
         return tf.add(input_projected, conv_out)
     else:
         return conv_out

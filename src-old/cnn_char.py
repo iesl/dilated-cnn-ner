@@ -48,7 +48,7 @@ class CNNChar(object):
             char_embeddings_lookup = tf.nn.embedding_lookup(self.char_embeddings, input_x1)
             print(char_embeddings_lookup.get_shape())
 
-            char_embeddings_flat = tf.reshape(char_embeddings_lookup, tf.stack([self.batch_size*self.max_seq_len, self.max_tok_len, self.embedding_size]))
+            char_embeddings_flat = tf.reshape(char_embeddings_lookup, tf.pack([self.batch_size*self.max_seq_len, self.max_tok_len, self.embedding_size]))
             print(char_embeddings_flat.get_shape())
             tok_lens_flat = tf.reshape(self.token_lengths, [self.batch_size*self.max_seq_len])
             print(tok_lens_flat.get_shape())
@@ -67,6 +67,6 @@ class CNNChar(object):
                 print("squeeze", h_squeeze.get_shape())
                 hidden_outputs = tf.reduce_max(h_squeeze, 1)
                 print("max", hidden_outputs.get_shape())
-                hidden_outputs_unflat = tf.reshape(hidden_outputs, tf.stack([self.batch_size, self.max_seq_len, self.hidden_dim]))
+                hidden_outputs_unflat = tf.reshape(hidden_outputs, tf.pack([self.batch_size, self.max_seq_len, self.hidden_dim]))
 
         return hidden_outputs_unflat
