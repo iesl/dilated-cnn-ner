@@ -20,12 +20,6 @@ if [[ "$lowercase" == "true" ]]; then
     lower_param="--lower"
 fi
 
-start_end_param=""
-if [[ "$start_end" == "true" ]]; then
-    start_end_param="--start_end"
-    output_dir="$output_dir-start_end"
-fi
-
 predict_pad_param=""
 if [[ "$predict_pad" == "true" ]]; then
     predict_pad_param="--predict_pad"

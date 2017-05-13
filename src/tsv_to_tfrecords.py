@@ -48,7 +48,7 @@ pad_strs = [PAD_STR, SENT_START, SENT_END, ZERO_STR, NONE_STR]
 
 DOC_MARKER_CONLL = "-DOCSTART-"
 DOC_MARKER_ONTONOTES = "#begin document"
-DOC_MARKER = DOC_MARKER_CONLL if FLAGS.dataset == "conll" else DOC_MARKER_ONTONOTES
+DOC_MARKER = DOC_MARKER_CONLL if FLAGS.dataset == "conll2003" else DOC_MARKER_ONTONOTES
 
 label_int_str_map = {}
 token_int_str_map = {}
@@ -141,7 +141,7 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
     for i, line in enumerate(lines):
         line = line.strip()
         if line:
-            token_str, label_str, current_tag = get_str_label_from_line_conll(line) if FLAGS.dataset == 'conll' else get_str_label_from_line_ontonotes(line, current_tag)
+            token_str, label_str, current_tag = get_str_label_from_line_conll(line) if FLAGS.dataset == 'conll2003' else get_str_label_from_line_ontonotes(line, current_tag)
 
             # skip docstart markers
             if token_str == DOC_MARKER:
@@ -359,7 +359,7 @@ def tsv_to_examples():
     num_docs = 0
 
     # TODO refactor this!!!
-    if FLAGS.dataset == "conll":
+    if FLAGS.dataset == "conll2003":
         if not os.path.exists(FLAGS.out_dir):
             print("Output directory not found: %s" % FLAGS.out_dir)
         writer = tf.python_io.TFRecordWriter(FLAGS.out_dir + '/examples.proto')
