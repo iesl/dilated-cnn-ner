@@ -95,6 +95,8 @@ def segment_eval(batches, predictions, label_map, type_int_int_map, labels_id_st
            zip(precisions, recalls)]
 
     print(gold_counts)
+    print(np.where(gold_counts != 0))
+    print(np.where(gold_counts != 0)[0])
 
     precision_macro = np.mean(precisions[np.where(gold_counts != 0)[0]])
     recall_macro = np.mean(recalls[np.where(gold_counts != 0)[0]])
