@@ -110,7 +110,7 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
 
     sent_len = len(lines)
     num_breaks = sum([1 if line.strip() == "" else 0 for line in lines])
-    max_len_with_pad = pad_width * (num_breaks + (1 if FLAGS.start_end else 2)) * (2 if FLAGS.start_end else 1) + (sent_len - num_breaks)
+    max_len_with_pad = pad_width * (num_breaks + 2) + (sent_len - num_breaks)
     max_word_len = max(map(len, lines))
 
     oov_count = 0
@@ -216,15 +216,7 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
         sent_lens.append(sent_len)
 
     # final padding
-    if not FLAGS.documents and FLAGS.start_end:
-        tokens[idx:idx+pad_width] = token_map[SENT_END]
-        shapes[idx:idx+pad_width] = shape_map[SENT_END]
-        chars[char_start:char_start+pad_width] = char_map[SENT_END]
-        char_start += pad_width
-        tok_lens.extend([1] * pad_width)
-        if FLAGS.predict_pad:
-            intmapped_labels[idx:idx+pad_width] = label_map[SENT_END]
-    elif not FLAGS.documents:
+    if not FLAGS.documents:
         tokens[idx:idx+pad_width] = token_map[PAD_STR]
         shapes[idx:idx+pad_width] = shape_map[PAD_STR]
         chars[char_start:char_start+pad_width] = char_map[PAD_STR]

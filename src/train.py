@@ -217,15 +217,14 @@ def main(argv):
         saver = tf.train.Saver(var_list=model_vars)
 
         sv = tf.train.Supervisor(logdir=FLAGS.model_dir if FLAGS.model_dir != '' else None,
-                                        global_step=global_step,
-                                        saver=None,
-                                        save_model_secs=0,
-                                        save_summaries_secs=0
-                                        )
+                                 global_step=global_step,
+                                 saver=None,
+                                 save_model_secs=0,
+                                 save_summaries_secs=0)
 
         training_start_time = time.time()
         with sv.managed_session(FLAGS.master, config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-            def run_evaluation(eval_batches, use_context_agg, extra_text=""):
+            def run_evaluation(eval_batches, extra_text=""):
                 predictions = []
                 for b, (eval_label_batch, eval_token_batch, eval_shape_batch, eval_char_batch, eval_seq_len_batch, eval_tok_len_batch, eval_mask_batch) in enumerate(eval_batches):
                     batch_size, batch_seq_len = eval_token_batch.shape
