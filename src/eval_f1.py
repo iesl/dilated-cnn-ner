@@ -98,8 +98,11 @@ def segment_eval(batches, predictions, label_map, type_int_int_map, labels_id_st
     print(np.where(np.array(gold_counts.values()) != 0))
     print(np.where(np.array(gold_counts.values()) != 0)[0])
 
-    precision_macro = np.mean(precisions[np.where(np.array(gold_counts.values()) != 0)[0]])
-    recall_macro = np.mean(recalls[np.where(np.array(gold_counts.values()) != 0)[0]])
+    in_indices = np.where(np.array(gold_counts.values()) != 0)[0]
+    print("in indices", in_indices)
+
+    precision_macro = np.mean(precisions[in_indices])
+    recall_macro = np.mean(recalls[in_indices])
     f1_macro = 2 * precision_macro * recall_macro / (precision_macro + recall_macro)
 
     precision_micro = all_correct / all_pred
