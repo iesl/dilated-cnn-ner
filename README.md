@@ -1,7 +1,7 @@
 # dilated-cnn-ner
 
 This code implements the models described in the paper
-"[Fast and Accurate Sequence Labeling with Iterated Dilated Convolutions](https://arxiv.org/abs/1702.02098)"
+"[Fast and Accurate Entity Recognition with Iterated Dilated Convolutions](https://arxiv.org/abs/1702.02098)"
 by [Emma Strubell](https://cs.umass.edu/~strubell), [Patrick Verga](https://cs.umass.edu/~pat),
 [David Belanger](https://cs.umass.edu/~belanger) and [Andrew McCallum](https://cs.umass.edu/~mccallum).
 
