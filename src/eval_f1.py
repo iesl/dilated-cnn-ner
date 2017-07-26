@@ -37,7 +37,7 @@ def segment_eval(batches, predictions, label_map, type_int_int_map, labels_id_st
     correct_counts = {t: 0 for t in label_map.values()}
     token_count = 0
     # iterate over batches
-    for predictions, (dev_label_batch, dev_token_batch, _, _, dev_seq_len_batch, _, _) in zip(predictions, batches):
+    for predictions, (dev_label_batch, dev_token_batch, _, _,  _, _, _, _, dev_seq_len_batch, _, _) in zip(predictions, batches):
         # iterate over examples in batch
         for preds, labels, tokens, seq_lens in zip(predictions, dev_label_batch, dev_token_batch, dev_seq_len_batch):
             start = pad_width
