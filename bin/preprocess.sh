@@ -14,6 +14,7 @@ vocab_param="--vocab $embeddings"
 labels_param=""
 char_param=""
 shape_param=""
+position_param=""
 
 lower_param=""
 if [[ "$lowercase" == "true" ]]; then
@@ -77,6 +78,7 @@ for (( i=0; i < ${#data_files[@]}; i++)); do
             $labels_param \
             $shape_param \
             $char_param \
+            $position_param \
             $doc_param \
             $predict_pad_param \
             $additional_args"
@@ -87,6 +89,7 @@ for (( i=0; i < ${#data_files[@]}; i++)); do
             labels_param="--labels $this_output_dir/label.txt"
             shape_param="--shapes $this_output_dir/shape.txt"
             char_param="--chars $this_output_dir/char.txt"
+            position_param="--positions $this_output_dir/position.txt"
         done
     else
         this_data_file=$raw_data_dir/$filename
@@ -108,6 +111,7 @@ for (( i=0; i < ${#data_files[@]}; i++)); do
         $labels_param \
         $shape_param \
         $char_param \
+        $position_param \
         $doc_param \
         $predict_pad_param \
         $additional_args"
@@ -119,6 +123,7 @@ for (( i=0; i < ${#data_files[@]}; i++)); do
             labels_param="--labels $this_output_dir/label.txt"
             shape_param="--shapes $this_output_dir/shape.txt"
             char_param="--chars $this_output_dir/char.txt"
+            position_param="--positions $this_output_dir/position.txt"
         fi
     fi
 

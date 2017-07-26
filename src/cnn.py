@@ -6,17 +6,20 @@ import tf_utils
 
 
 class CNN(object):
-
-    def __init__(self, num_classes, vocab_size, shape_domain_size, char_domain_size, char_size, embedding_size,
-                 shape_size, nonlinearity, layers_map, viterbi, projection, loss, margin, repeats, share_repeats,
+    def __init__(self, num_classes, vocab_size, shape_domain_size, position_domain_size, char_domain_size, char_size,
+                 embedding_size,
+                 shape_size, position_size, nonlinearity, layers_map, viterbi, projection, loss, margin, repeats,
+                 share_repeats,
                  char_embeddings, embeddings=None):
 
         self.num_classes = num_classes
         self.shape_domain_size = shape_domain_size
+        self.position_domain_size = position_domain_size
         self.char_domain_size = char_domain_size
         self.char_size = char_size
         self.embedding_size = embedding_size
         self.shape_size = shape_size
+        self.position_size = position_size
         self.nonlinearity = nonlinearity
         self.layers_map = layers_map
         self.projection = projection
@@ -32,6 +35,12 @@ class CNN(object):
 
         # shape embedding input
         self.input_x2 = tf.placeholder(tf.int64, [None, None], name="input_x2")
+
+        # position embedding input
+        self.input_x3_top_x = tf.placeholder(tf.int64, [None, None], name="input_x3_top_x")
+        self.input_x3_top_y = tf.placeholder(tf.int64, [None, None], name="input_x3_top_y")
+        self.input_x3_bottom_x = tf.placeholder(tf.int64, [None, None], name="input_x3_bottom_x")
+        self.input_x3_bottom_y = tf.placeholder(tf.int64, [None, None], name="input_x3_bottom_y")
 
         # labels
         self.input_y = tf.placeholder(tf.int64, [None, None], name="input_y")
@@ -59,30 +68,38 @@ class CNN(object):
 
         self.use_characters = char_size != 0
         self.use_shape = shape_size != 0
+        self.use_position = position_size != 0
 
         self.ones = tf.ones([self.batch_size, self.max_seq_len, self.num_classes])
 
         if self.viterbi:
             self.transition_params = tf.get_variable("transitions", [num_classes, num_classes])
 
-        word_embeddings_shape = (vocab_size-1, embedding_size)
+        word_embeddings_shape = (vocab_size - 1, embedding_size)
         self.w_e = tf_utils.initialize_embeddings(word_embeddings_shape, name="w_e", pretrained=embeddings, old=False)
 
-        self.block_unflat_scores, self.hidden_layer = self.forward(self.input_x1, self.input_x2, self.max_seq_len,
-                                          self.hidden_dropout_keep_prob,
-                                          self.input_dropout_keep_prob, self.middle_dropout_keep_prob, reuse=False)
+        self.block_unflat_scores, self.hidden_layer = self.forward(self.input_x1, self.input_x2, self.input_x3_top_x,
+                                                                   self.input_x3_top_y, self.input_x3_bottom_x,
+                                                                   self.input_x3_bottom_y, self.max_seq_len,
+                                                                   self.hidden_dropout_keep_prob,
+                                                                   self.input_dropout_keep_prob,
+                                                                   self.middle_dropout_keep_prob, reuse=False)
 
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
 
             self.loss = tf.constant(0.0)
 
-            self.block_unflat_no_dropout_scores, _ = self.forward(self.input_x1, self.input_x2, self.max_seq_len, 1.0, 1.0, 1.0)
+            self.block_unflat_no_dropout_scores, _ = self.forward(self.input_x1, self.input_x2, self.input_x3_top_x,
+                                                                  self.input_x3_top_y, self.input_x3_bottom_x,
+                                                                  self.input_x3_bottom_y,
+                                                                  self.max_seq_len, 1.0, 1.0, 1.0)
 
             labels = tf.cast(self.input_y, 'int32')
 
             if self.which_loss == "block":
-                for unflat_scores, unflat_no_dropout_scores in zip(self.block_unflat_scores, self.block_unflat_no_dropout_scores):
+                for unflat_scores, unflat_no_dropout_scores in zip(self.block_unflat_scores,
+                                                                   self.block_unflat_no_dropout_scores):
                     self.loss += self.compute_loss(unflat_scores, unflat_no_dropout_scores, labels)
                 self.unflat_scores = self.block_unflat_scores[-1]
             else:
@@ -149,7 +166,8 @@ class CNN(object):
         loss += self.drop_penalty * drop_loss
         return loss
 
-    def forward(self, input_x1, input_x2, max_seq_len, hidden_dropout_keep_prob, input_dropout_keep_prob,
+    def forward(self, input_x1, input_x2, input_x3_top_x, input_x3_top_y, input_x3_bottom_x, input_x3_bottom_y,
+                max_seq_len, hidden_dropout_keep_prob, input_dropout_keep_prob,
                 middle_dropout_keep_prob, reuse=True):
 
         block_unflat_scores = []
@@ -164,11 +182,25 @@ class CNN(object):
                 input_list.append(char_embeddings_masked)
                 input_size += self.char_size
             if self.use_shape:
-                shape_embeddings_shape = (self.shape_domain_size-1, self.shape_size)
+                shape_embeddings_shape = (self.shape_domain_size - 1, self.shape_size)
                 w_s = tf_utils.initialize_embeddings(shape_embeddings_shape, name="w_s")
                 shape_embeddings = tf.nn.embedding_lookup(w_s, input_x2)
+
+                position_embeddings_shape = (self.position_domain_size - 1, self.position_size)
+                w_p = tf_utils.initialize_embeddings(position_embeddings_shape, name="w_p")
+
+                position_embeddings_top_x = tf.nn.embedding_lookup(w_p, input_x3_top_x)
+                position_embeddings_top_y = tf.nn.embedding_lookup(w_p, input_x3_top_y)
+                position_embeddings_bottom_x = tf.nn.embedding_lookup(w_p, input_x3_bottom_x)
+                position_embeddings_bottom_y = tf.nn.embedding_lookup(w_p, input_x3_bottom_y)
                 input_list.append(shape_embeddings)
+                input_list.append(position_embeddings_top_x)
+                input_list.append(position_embeddings_top_y)
+                input_list.append(position_embeddings_bottom_x)
+                input_list.append(position_embeddings_bottom_y)
+
                 input_size += self.shape_size
+                input_size += 4 * self.position_size
 
             initial_filter_width = self.layers_map[0][1]['width']
             initial_num_filters = self.layers_map[0][1]['filters']
@@ -188,7 +220,8 @@ class CNN(object):
             # first projection of embeddings
             w = tf_utils.initialize_weights(filter_shape, initial_layer_name + "_w", init_type='xavier', gain='relu')
             b = tf.get_variable(initial_layer_name + "_b", initializer=tf.constant(0.01, shape=[initial_num_filters]))
-            conv0 = tf.nn.conv2d(input_feats_expanded_drop, w, strides=[1, 1, 1, 1], padding="SAME", name=initial_layer_name)
+            conv0 = tf.nn.conv2d(input_feats_expanded_drop, w, strides=[1, 1, 1, 1], padding="SAME",
+                                 name=initial_layer_name)
             h0 = tf_utils.apply_nonlinearity(tf.nn.bias_add(conv0, b), 'relu')
 
             initial_inputs = [h0]
@@ -215,19 +248,23 @@ class CNN(object):
                         take_layer = layer['take']
                         if not reuse:
                             print("Adding layer %s: dilation: %d; width: %d; filters: %d; take: %r" % (
-                            layer_name, dilation, filter_width, num_filters, take_layer))
+                                layer_name, dilation, filter_width, num_filters, take_layer))
                         with tf.name_scope("atrous-conv-%s" % layer_name):
                             # [filter_height, filter_width, in_channels, out_channels]
                             filter_shape = [1, filter_width, inner_last_dims, num_filters]
-                            w = tf_utils.initialize_weights(filter_shape, layer_name + "_w", init_type=initialization, gain=self.nonlinearity, divisor=self.num_classes)
-                            b = tf.get_variable(layer_name + "_b", initializer=tf.constant(0.0 if initialization == "identity" or initialization == "varscale" else 0.001, shape=[num_filters]))
+                            w = tf_utils.initialize_weights(filter_shape, layer_name + "_w", init_type=initialization,
+                                                            gain=self.nonlinearity, divisor=self.num_classes)
+                            b = tf.get_variable(layer_name + "_b", initializer=tf.constant(
+                                0.0 if initialization == "identity" or initialization == "varscale" else 0.001,
+                                shape=[num_filters]))
                             # h = tf_utils.residual_layer(inner_last_output, w, b, dilation, self.nonlinearity, self.batch_norm, layer_name + "_r",
                             #                             self.batch_size, max_seq_len, self.res_activation, self.training) \
                             #     if last_output != input_feats_expanded_drop \
                             #     else tf_utils.residual_layer(inner_last_output, w, b, dilation, self.nonlinearity, False, layer_name + "_r",
                             #                             self.batch_size, max_seq_len, 0, self.training)
 
-                            conv = tf.nn.atrous_conv2d(inner_last_output, w, rate=dilation, padding="SAME", name=layer_name)
+                            conv = tf.nn.atrous_conv2d(inner_last_output, w, rate=dilation, padding="SAME",
+                                                       name=layer_name)
                             conv_b = tf.nn.bias_add(conv, b)
                             h = tf_utils.apply_nonlinearity(conv_b, self.nonlinearity)
 
@@ -252,8 +289,9 @@ class CNN(object):
                     def do_projection():
                         # Project raw outputs down
                         with tf.name_scope("projection"):
-                            projection_width = int(total_output_width/(2*len(hidden_outputs)))
-                            w_p = tf_utils.initialize_weights([total_output_width, projection_width], "w_p", init_type="xavier")
+                            projection_width = int(total_output_width / (2 * len(hidden_outputs)))
+                            w_p = tf_utils.initialize_weights([total_output_width, projection_width], "w_p",
+                                                              init_type="xavier")
                             b_p = tf.get_variable("b_p", initializer=tf.constant(0.01, shape=[projection_width]))
                             projected = tf.nn.xw_plus_b(h_drop, w_p, b_p, name="projected")
                             projected_nonlinearity = tf_utils.apply_nonlinearity(projected, self.nonlinearity)
@@ -261,10 +299,11 @@ class CNN(object):
 
                     # only use projection if we wanted to, and only apply middle dropout here if projection
                     input_to_pred, proj_width = do_projection() if self.projection else (h_drop, total_output_width)
-                    input_to_pred_drop = tf.nn.dropout(input_to_pred, middle_dropout_keep_prob) if self.projection else input_to_pred
+                    input_to_pred_drop = tf.nn.dropout(input_to_pred,
+                                                       middle_dropout_keep_prob) if self.projection else input_to_pred
 
                     # Final (unnormalized) scores and predictions
-                    with tf.name_scope("output"+block_name_suff):
+                    with tf.name_scope("output" + block_name_suff):
                         w_o = tf_utils.initialize_weights([proj_width, self.num_classes], "w_o", init_type="xavier")
                         b_o = tf.get_variable("b_o", initializer=tf.constant(0.01, shape=[self.num_classes]))
                         self.l2_loss += tf.nn.l2_loss(w_o)

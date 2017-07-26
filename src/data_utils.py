@@ -7,6 +7,7 @@ import os
 
 FLAGS = tf.app.flags.FLAGS
 
+
 class Batcher(object):
     def __init__(self, in_dir, batch_size, num_epochs=None):
         self._batch_size = batch_size
@@ -30,9 +31,10 @@ class Batcher(object):
                 done = True
         # now flatten
         for seq_len, batches in self._data.items():
-            self._data[seq_len] = [(label_batch[i], token_batch[i], shape_batch[i], char_batch[i], seq_len_batch[i], tok_len_batch[i])
-                                  for (label_batch, token_batch, shape_batch, char_batch, seq_len_batch, tok_len_batch) in batches
-                                  for i in range(label_batch.shape[0])]
+            self._data[seq_len] = [
+                (label_batch[i], token_batch[i], shape_batch[i], top_x_positions_batch[i], top_y_positions_batch[i], bottom_x_positions_batch[i], bottom_y_positions_batch[i], char_batch[i], seq_len_batch[i], tok_len_batch[i])
+                for (label_batch, token_batch, shape_batch, top_x_positions_batch, top_y_positions_batch, bottom_x_positions_batch, bottom_y_positions_batch, char_batch, seq_len_batch, tok_len_batch) in batches
+                for i in range(label_batch.shape[0])]
         self.reset_batch_pointer()
 
     def next_batch(self):
@@ -50,10 +52,14 @@ class Batcher(object):
         _label_batch = np.array([b[0] for b in batch])
         _token_batch = np.array([b[1] for b in batch])
         _shape_batch = np.array([b[2] for b in batch])
-        _char_batch = np.array([b[3] for b in batch])
-        _seq_len_batch = np.array([b[4] for b in batch])
-        _tok_len_batch = np.array([b[5] for b in batch])
-        batch = (_label_batch, _token_batch, _shape_batch, _char_batch, _seq_len_batch, _tok_len_batch)
+        _top_x_positions_batch = np.array([b[3] for b in batch])
+        _top_y_positions_batch = np.array([b[4] for b in batch])
+        _bottom_x_positions_batch = np.array([b[5] for b in batch])
+        _bottom_y_positions_batch = np.array([b[6] for b in batch])
+        _char_batch = np.array([b[7] for b in batch])
+        _seq_len_batch = np.array([b[8] for b in batch])
+        _tok_len_batch = np.array([b[9] for b in batch])
+        batch = (_label_batch, _token_batch, _shape_batch, _top_x_positions_batch, _top_y_positions_batch, _bottom_x_positions_batch, _bottom_y_positions_batch, _char_batch, _seq_len_batch, _tok_len_batch)
 
         return batch
 
@@ -75,6 +81,7 @@ class Batcher(object):
         bucket = np.random.choice(buckets, p=probs)
         return bucket
 
+
 class SeqBatcher(object):
     def __init__(self, in_pattern, batch_size, num_buckets=0, num_epochs=None):
         self._batch_size = batch_size
@@ -94,6 +101,10 @@ class SeqBatcher(object):
             'labels': tf.FixedLenSequenceFeature([], tf.int64),
             'tokens': tf.FixedLenSequenceFeature([], tf.int64),
             'shapes': tf.FixedLenSequenceFeature([], tf.int64),
+            'top_x_positions': tf.FixedLenSequenceFeature([], tf.int64),
+            'top_y_positions': tf.FixedLenSequenceFeature([], tf.int64),
+            'bottom_x_positions': tf.FixedLenSequenceFeature([], tf.int64),
+            'bottom_y_positions': tf.FixedLenSequenceFeature([], tf.int64),
             'chars': tf.FixedLenSequenceFeature([], tf.int64),
             'seq_len': tf.FixedLenSequenceFeature([], tf.int64),
             'tok_len': tf.FixedLenSequenceFeature([], tf.int64),
@@ -103,16 +114,19 @@ class SeqBatcher(object):
         labels = example['labels']
         tokens = example['tokens']
         shapes = example['shapes']
+        top_x_positions = example['top_x_positions']
+        top_y_positions = example['top_y_positions']
+        bottom_x_positions = example['bottom_x_positions']
+        bottom_y_positions = example['bottom_y_positions']
         chars = example['chars']
         seq_len = example['seq_len']
         tok_len = example['tok_len']
-        # context = c['context']
-        return labels, tokens, shapes, chars, seq_len, tok_len
-        # return labels, tokens, labels, labels, labels
+        return labels, tokens, shapes, top_x_positions, top_y_positions, bottom_x_positions, bottom_y_positions, chars, seq_len, tok_len
 
     def input_pipeline(self, filenames, batch_size, num_buckets, num_epochs=None):
         filename_queue = tf.train.string_input_producer(filenames, num_epochs=num_epochs, shuffle=True)
-        labels, tokens, shapes, chars, seq_len, tok_len = self.example_parser(filename_queue)
+        labels, tokens, shapes, top_x_positions, top_y_positions, bottom_x_positions, bottom_y_positions, chars, seq_len, tok_len = self.example_parser(
+            filename_queue)
         # min_after_dequeue defines how big a buffer we will randomly sample
         #   from -- bigger means better shuffling but slower start up and more
         #   memory used.
@@ -122,63 +136,15 @@ class SeqBatcher(object):
         min_after_dequeue = 10000
         capacity = min_after_dequeue + 12 * batch_size
 
-        # next_batch = tf.train.batch([labels, tokens, shapes, chars, seq_len], batch_size=batch_size, capacity=capacity,
-        #                                 dynamic_pad=True, allow_smaller_final_batch=True)
-
         if num_buckets == 0:
-            next_batch = tf.train.batch([labels, tokens, shapes, chars, seq_len, tok_len], batch_size=batch_size, capacity=capacity,
-                                        dynamic_pad=True, allow_smaller_final_batch=True)
+            next_batch = tf.train.batch(
+                [labels, tokens, shapes, top_x_positions, top_y_positions, bottom_x_positions,
+                 bottom_y_positions, chars, seq_len, tok_len], batch_size=batch_size, capacity=capacity,
+                dynamic_pad=True, allow_smaller_final_batch=True)
         else:
-            bucket, next_batch = tf.contrib.training.bucket([labels, tokens, shapes, chars, seq_len, tok_len], np.random.randint(num_buckets),
-                                                        batch_size, num_buckets, num_threads=1, capacity=capacity,
-                                                        dynamic_pad=True, allow_smaller_final_batch=False)
+            bucket, next_batch = tf.contrib.training.bucket(
+                [labels, tokens, shapes, top_x_positions, top_y_positions, bottom_x_positions, bottom_y_positions,
+                 chars, seq_len, tok_len], np.random.randint(num_buckets),
+                batch_size, num_buckets, num_threads=1, capacity=capacity,
+                dynamic_pad=True, allow_smaller_final_batch=False)
         return next_batch
-
-
-# class NodeBatcher(object):
-#     def __init__(self, in_dir, max_seq, max_word, batch_size, num_epochs=None):
-#         self._batch_size = batch_size
-#         self._max_seq = max_seq
-#         self._max_word = max_word
-#         self._epoch = 0
-#         self._step = 1.
-#         self.num_epochs = num_epochs
-#         in_file = [in_dir + '/examples.proto']
-#         self.next_batch_op = self.input_pipeline(in_file, self._max_seq, self._max_word, self._batch_size, self.num_epochs)
-#
-#     def example_parser(self, filename_queue, max_seq, max_word):
-#         reader = tf.TFRecordReader()
-#         key, record_string = reader.read(filename_queue)
-#         features = {
-#             'labels': tf.FixedLenFeature([max_seq], tf.int64),
-#             'tokens': tf.FixedLenFeature([max_seq], tf.int64),
-#             'shapes': tf.FixedLenFeature([max_seq], tf.int64),
-#             'chars': tf.FixedLenFeature([], tf.int64),
-#             'seq_len': tf.FixedLenFeature([], tf.int64),
-#             'tok_len': tf.FixedLenFeature([], tf.int64)
-#         }
-#
-#         example = tf.parse_single_example(record_string, features)
-#         labels = example['labels']
-#         tokens = example['tokens']
-#         shapes = example['shapes']
-#         chars = example['chars'][0]
-#         seq_len = example['seq_len'][0]
-#         tok_len = example['tok_len'][0]
-#         return labels, tokens, shapes, chars, seq_len, tok_len
-#
-#     def input_pipeline(self, filenames, max_seq, max_word, batch_size, num_epochs=None):
-#         filename_queue = tf.train.string_input_producer(filenames, num_epochs=num_epochs, shuffle=True)
-#         labels, tokens, shapes, chars, seq_len, tok_len = self.example_parser(filename_queue, max_seq, max_word)
-#         # min_after_dequeue defines how big a buffer we will randomly sample
-#         #   from -- bigger means better shuffling but slower start up and more
-#         #   memory used.
-#         # capacity must be larger than min_after_dequeue and the amount larger
-#         #   determines the maximum we will prefetch.  Recommendation:
-#         #   min_after_dequeue + (num_threads + a small safety margin) * batch_size
-#         min_after_dequeue = 10000
-#         capacity = min_after_dequeue + 12 * batch_size
-#         next_batch = tf.train.shuffle_batch(
-#             [labels, tokens, shapes, chars, seq_len, tok_len], batch_size=batch_size, capacity=capacity,
-#             min_after_dequeue=min_after_dequeue, allow_smaller_final_batch=True)
-#         return next_batch

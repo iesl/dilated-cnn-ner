@@ -52,6 +52,7 @@ cmd="python src/train.py \
 --char_dim $char_dim \
 --char_tok_dim $char_tok_dim \
 --shape_dim $shape_dim \
+--position_dim $position_dim \
 --layers \"$layers\" \
 --model $model \
 --clip_norm $clip_grad \
