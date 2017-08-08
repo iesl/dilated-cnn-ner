@@ -1,8 +1,10 @@
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
+
 import tensorflow as tf
-import numpy as np
-import tf_utils
+
+import src.utils.tf_utils
+
 
 class BiLSTMChar(object):
 
@@ -44,7 +46,7 @@ class BiLSTMChar(object):
 
         # Embedding layer
         shape = (char_domain_size-1, self.embedding_size)
-        self.char_embeddings = tf_utils.initialize_embeddings(shape, name="char_embeddings", pretrained=embeddings)
+        self.char_embeddings = src.utils.tf_utils.initialize_embeddings(shape, name="char_embeddings", pretrained=embeddings)
 
         self.outputs = self.forward(self.input_chars, self.input_dropout_keep_prob, reuse=False)
 
@@ -77,7 +79,7 @@ class BiLSTMChar(object):
                 outputs_bw = lstm_outputs[1]
 
                 # this is batch*output_size (flat)
-                fw_output = tf_utils.last_relevant(outputs_fw, tok_lens_flat)
+                fw_output = src.utils.tf_utils.last_relevant(outputs_fw, tok_lens_flat)
                 # this is batch * max_seq_len * output_size
                 bw_output = outputs_bw[:, 0, :]
                 hidden_outputs = tf.concat(axis=1, values=[fw_output, bw_output])

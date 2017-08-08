@@ -1,7 +1,10 @@
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
+
 import tensorflow as tf
-import tf_utils
+
+import src.utils.tf_utils
+
 
 class CNNChar(object):
 
@@ -38,7 +41,7 @@ class CNNChar(object):
         print("out dim: ", self.hidden_dim)
 
         char_embeddings_shape = (self.char_domain_size-1, self.embedding_size)
-        self.char_embeddings = tf_utils.initialize_embeddings(char_embeddings_shape, name="char_embeddings", pretrained=embeddings)
+        self.char_embeddings = src.utils.tf_utils.initialize_embeddings(char_embeddings_shape, name="char_embeddings", pretrained=embeddings)
 
         self.outputs = self.forward(self.input_chars, self.input_dropout_keep_prob, reuse=False)
 
@@ -59,7 +62,7 @@ class CNNChar(object):
 
             with tf.name_scope("char-cnn"):
                 filter_shape = [1, self.filter_width, self.embedding_size, self.hidden_dim]
-                w = tf_utils.initialize_weights(filter_shape, "conv0_w", init_type='xavier',  gain='relu')
+                w = src.utils.tf_utils.initialize_weights(filter_shape, "conv0_w", init_type='xavier', gain='relu')
                 b = tf.get_variable("conv0_b", initializer=tf.constant(0.01, shape=[self.hidden_dim]))
                 conv0 = tf.nn.conv2d(input_feats_expanded_drop, w, strides=[1, 1, 1, 1], padding="SAME", name="conv0")
                 print("conv0", conv0.get_shape())

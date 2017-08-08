@@ -1,19 +1,22 @@
 from __future__ import division
 from __future__ import print_function
+
+import json
+import os
 import sys
 import time
-import tensorflow as tf
-import numpy as np
-from data_utils import SeqBatcher, Batcher
-from cnn import CNN
-from bilstm import BiLSTM
-from bilstm_char import BiLSTMChar
-from cnn_char import CNNChar
-import eval_f1 as evaluation
-import json
-import tf_utils
 from os import listdir
-import os
+
+import numpy as np
+import tensorflow as tf
+
+import src.evaluation.eval_f1 as evaluation
+from src.models.bilstm import BiLSTM
+from src.models.bilstm_char import BiLSTMChar
+from src.models.cnn import CNN
+from src.models.cnn_char import CNNChar
+from src.utils import tf_utils
+from src.utils.data_utils import SeqBatcher, Batcher
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -26,7 +29,7 @@ def main(argv):
     maps_dir = FLAGS.maps_dir
 
     if train_dir == '':
-        print('Must supply input data directory generated from tsv_to_tfrecords.py')
+        print('Must supply input data_1 directory generated from tsv_to_tfrecords.py')
         sys.exit(1)
 
     print('\n'.join(sorted(["%s : %s" % (str(k), str(v)) for k, v in FLAGS.__dict__['__flags'].items()])))
@@ -541,10 +544,10 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    tf.app.flags.DEFINE_string('train_dir', '', 'directory containing preprocessed training data')
-    tf.app.flags.DEFINE_string('dev_dir', '', 'directory containing preprocessed dev data')
-    tf.app.flags.DEFINE_string('test_dir', '', 'directory containing preprocessed test data')
-    tf.app.flags.DEFINE_string('maps_dir', '', 'directory containing data intmaps')
+    tf.app.flags.DEFINE_string('train_dir', '', 'directory containing preprocessed training data_1')
+    tf.app.flags.DEFINE_string('dev_dir', '', 'directory containing preprocessed dev data_1')
+    tf.app.flags.DEFINE_string('test_dir', '', 'directory containing preprocessed test data_1')
+    tf.app.flags.DEFINE_string('maps_dir', '', 'directory containing data_1 intmaps')
 
     tf.app.flags.DEFINE_string('model_dir', '', 'save model to this dir (if empty do not save)')
     tf.app.flags.DEFINE_string('load_dir', '', 'load model from this dir (if empty do not load)')

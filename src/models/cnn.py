@@ -1,8 +1,10 @@
-from __future__ import print_function
 from __future__ import division
-import tensorflow as tf
+from __future__ import print_function
+
 import numpy as np
-import tf_utils
+import tensorflow as tf
+
+import src.utils.tf_utils
 
 
 class CNN(object):
@@ -76,7 +78,7 @@ class CNN(object):
             self.transition_params = tf.get_variable("transitions", [num_classes, num_classes])
 
         word_embeddings_shape = (vocab_size - 1, embedding_size)
-        self.w_e = tf_utils.initialize_embeddings(word_embeddings_shape, name="w_e", pretrained=embeddings, old=False)
+        self.w_e = src.utils.tf_utils.initialize_embeddings(word_embeddings_shape, name="w_e", pretrained=embeddings, old=False)
 
         self.block_unflat_scores, self.hidden_layer = self.forward(self.input_x1, self.input_x2, self.input_x3_top_x,
                                                                    self.input_x3_top_y, self.input_x3_bottom_x,
@@ -140,7 +142,7 @@ class CNN(object):
                 # also todo put idx-into-3d as sep func
                 flat_labels = tf.reshape(labels, [-1])
                 batch_offsets = tf.multiply(tf.range(self.batch_size), self.max_seq_len * self.num_classes)
-                repeated_batch_offsets = tf_utils.repeat(batch_offsets, self.max_seq_len)
+                repeated_batch_offsets = src.utils.tf_utils.repeat(batch_offsets, self.max_seq_len)
                 tok_offsets = tf.multiply(tf.range(self.max_seq_len), self.num_classes)
                 tiled_tok_offsets = tf.tile(tok_offsets, [self.batch_size])
                 indices = tf.add(tf.add(repeated_batch_offsets, tiled_tok_offsets), flat_labels)
@@ -183,11 +185,11 @@ class CNN(object):
                 input_size += self.char_size
             if self.use_shape:
                 shape_embeddings_shape = (self.shape_domain_size - 1, self.shape_size)
-                w_s = tf_utils.initialize_embeddings(shape_embeddings_shape, name="w_s")
+                w_s = src.utils.tf_utils.initialize_embeddings(shape_embeddings_shape, name="w_s")
                 shape_embeddings = tf.nn.embedding_lookup(w_s, input_x2)
 
                 position_embeddings_shape = (self.position_domain_size - 1, self.position_size)
-                w_p = tf_utils.initialize_embeddings(position_embeddings_shape, name="w_p")
+                w_p = src.utils.tf_utils.initialize_embeddings(position_embeddings_shape, name="w_p")
 
                 position_embeddings_top_x = tf.nn.embedding_lookup(w_p, input_x3_top_x)
                 position_embeddings_top_y = tf.nn.embedding_lookup(w_p, input_x3_top_y)
@@ -218,11 +220,11 @@ class CNN(object):
             print("input feats expanded drop", input_feats_expanded_drop.get_shape())
 
             # first projection of embeddings
-            w = tf_utils.initialize_weights(filter_shape, initial_layer_name + "_w", init_type='xavier', gain='relu')
+            w = src.utils.tf_utils.initialize_weights(filter_shape, initial_layer_name + "_w", init_type='xavier', gain='relu')
             b = tf.get_variable(initial_layer_name + "_b", initializer=tf.constant(0.01, shape=[initial_num_filters]))
             conv0 = tf.nn.conv2d(input_feats_expanded_drop, w, strides=[1, 1, 1, 1], padding="SAME",
                                  name=initial_layer_name)
-            h0 = tf_utils.apply_nonlinearity(tf.nn.bias_add(conv0, b), 'relu')
+            h0 = src.utils.tf_utils.apply_nonlinearity(tf.nn.bias_add(conv0, b), 'relu')
 
             initial_inputs = [h0]
             last_dims = initial_num_filters
@@ -252,8 +254,8 @@ class CNN(object):
                         with tf.name_scope("atrous-conv-%s" % layer_name):
                             # [filter_height, filter_width, in_channels, out_channels]
                             filter_shape = [1, filter_width, inner_last_dims, num_filters]
-                            w = tf_utils.initialize_weights(filter_shape, layer_name + "_w", init_type=initialization,
-                                                            gain=self.nonlinearity, divisor=self.num_classes)
+                            w = src.utils.tf_utils.initialize_weights(filter_shape, layer_name + "_w", init_type=initialization,
+                                                                      gain=self.nonlinearity, divisor=self.num_classes)
                             b = tf.get_variable(layer_name + "_b", initializer=tf.constant(
                                 0.0 if initialization == "identity" or initialization == "varscale" else 0.001,
                                 shape=[num_filters]))
@@ -266,7 +268,7 @@ class CNN(object):
                             conv = tf.nn.atrous_conv2d(inner_last_output, w, rate=dilation, padding="SAME",
                                                        name=layer_name)
                             conv_b = tf.nn.bias_add(conv, b)
-                            h = tf_utils.apply_nonlinearity(conv_b, self.nonlinearity)
+                            h = src.utils.tf_utils.apply_nonlinearity(conv_b, self.nonlinearity)
 
                             # so, only apply "take" to last block (may want to change this later)
                             if take_layer:
@@ -290,11 +292,11 @@ class CNN(object):
                         # Project raw outputs down
                         with tf.name_scope("projection"):
                             projection_width = int(total_output_width / (2 * len(hidden_outputs)))
-                            w_p = tf_utils.initialize_weights([total_output_width, projection_width], "w_p",
-                                                              init_type="xavier")
+                            w_p = src.utils.tf_utils.initialize_weights([total_output_width, projection_width], "w_p",
+                                                                        init_type="xavier")
                             b_p = tf.get_variable("b_p", initializer=tf.constant(0.01, shape=[projection_width]))
                             projected = tf.nn.xw_plus_b(h_drop, w_p, b_p, name="projected")
-                            projected_nonlinearity = tf_utils.apply_nonlinearity(projected, self.nonlinearity)
+                            projected_nonlinearity = src.utils.tf_utils.apply_nonlinearity(projected, self.nonlinearity)
                         return projected_nonlinearity, projection_width
 
                     # only use projection if we wanted to, and only apply middle dropout here if projection
@@ -304,7 +306,7 @@ class CNN(object):
 
                     # Final (unnormalized) scores and predictions
                     with tf.name_scope("output" + block_name_suff):
-                        w_o = tf_utils.initialize_weights([proj_width, self.num_classes], "w_o", init_type="xavier")
+                        w_o = src.utils.tf_utils.initialize_weights([proj_width, self.num_classes], "w_o", init_type="xavier")
                         b_o = tf.get_variable("b_o", initializer=tf.constant(0.01, shape=[self.num_classes]))
                         self.l2_loss += tf.nn.l2_loss(w_o)
                         self.l2_loss += tf.nn.l2_loss(b_o)

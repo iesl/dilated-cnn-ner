@@ -9,7 +9,7 @@ import tensorflow as tf
 import numpy as np
 from os import listdir
 
-tf.app.flags.DEFINE_string('in_file', 'naacl-data.tsv', 'tsv file containing string data')
+tf.app.flags.DEFINE_string('in_file', 'naacl-data_1.tsv', 'tsv file containing string data_1')
 tf.app.flags.DEFINE_string('vocab', '', 'file containing vocab (empty means make new vocab)')
 tf.app.flags.DEFINE_string('labels', '', 'file containing labels (but always add new labels)')
 tf.app.flags.DEFINE_string('shapes', '', 'file containing shapes (add new shapes only when adding new vocab)')
@@ -31,7 +31,7 @@ tf.app.flags.DEFINE_boolean('documents', False, 'whether to grab documents rathe
 
 tf.app.flags.DEFINE_boolean('update_maps', False, 'whether to update maps')
 
-tf.app.flags.DEFINE_string('update_vocab', '', 'file to update vocab with tokens from training data')
+tf.app.flags.DEFINE_string('update_vocab', '', 'file to update vocab with tokens from training data_1')
 
 tf.app.flags.DEFINE_string('dataset', 'conll', 'which dataset')
 
@@ -423,7 +423,7 @@ def tsv_to_examples():
             with open(FLAGS.out_dir + '/' + f_str + '.txt', 'w') as f:
                 [f.write(s + '\t' + str(i) + '\n') for (s, i) in id_map.items()]
 
-        # export data sizes to file
+        # export data_1 sizes to file
         with open(FLAGS.out_dir + "/sizes.txt", 'w') as f:
             print(num_sentences, file=f)
             print(num_tokens, file=f)

@@ -1,8 +1,10 @@
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
+
 import tensorflow as tf
-import numpy as np
-import tf_utils
+
+import src.utils.tf_utils
+
 
 class BiLSTM(object):
 
@@ -71,7 +73,7 @@ class BiLSTM(object):
         # Embedding layer
         # with tf.device('/cpu:0'), tf.name_scope("embedding"):
         word_embeddings_shape = (vocab_size - 1, embedding_size)
-        self.w_e = tf_utils.initialize_embeddings(word_embeddings_shape, name="w_e", pretrained=embeddings)
+        self.w_e = src.utils.tf_utils.initialize_embeddings(word_embeddings_shape, name="w_e", pretrained=embeddings)
 
         nonzero_elements = tf.not_equal(self.sequence_lengths, tf.zeros_like(self.sequence_lengths))
         count_nonzero_per_row = tf.reduce_sum(tf.to_int32(nonzero_elements), axis=1)
@@ -120,7 +122,7 @@ class BiLSTM(object):
                 input_size += self.char_size
             if self.use_shape:
                 shape_embeddings_shape = (self.shape_domain_size - 1, self.shape_size)
-                w_s = tf_utils.initialize_embeddings(shape_embeddings_shape, name="w_s")
+                w_s = src.utils.tf_utils.initialize_embeddings(shape_embeddings_shape, name="w_s")
                 shape_embeddings = tf.nn.embedding_lookup(w_s, input_x2)
                 input_list.append(shape_embeddings)
                 input_size += self.shape_size
@@ -149,12 +151,12 @@ class BiLSTM(object):
 
             # second projection
             with tf.name_scope("tanh_proj"):
-                w_tanh = tf_utils.initialize_weights([total_output_width, self.hidden_dim], "w_tanh", init_type="xavier")
+                w_tanh = src.utils.tf_utils.initialize_weights([total_output_width, self.hidden_dim], "w_tanh", init_type="xavier")
                 b_tanh = tf.get_variable(initializer=tf.constant(0.01, shape=[self.hidden_dim]), name="b_tanh")
                 self.l2_loss += tf.nn.l2_loss(w_tanh)
                 self.l2_loss += tf.nn.l2_loss(b_tanh)
                 h2_concat_flat = tf.nn.xw_plus_b(h_drop, w_tanh, b_tanh, name="h2_tanh")
-                h2_tanh = tf_utils.apply_nonlinearity(h2_concat_flat, self.nonlinearity)
+                h2_tanh = src.utils.tf_utils.apply_nonlinearity(h2_concat_flat, self.nonlinearity)
 
             # Add dropout
             with tf.name_scope("hidden_dropout"):
@@ -162,7 +164,7 @@ class BiLSTM(object):
 
             # Final (unnormalized) scores and predictions
             with tf.name_scope("output"):
-                w_o = tf_utils.initialize_weights([self.hidden_dim, self.num_classes], "w_o", init_type="xavier")
+                w_o = src.utils.tf_utils.initialize_weights([self.hidden_dim, self.num_classes], "w_o", init_type="xavier")
                 b_o = tf.get_variable(initializer=tf.constant(0.01, shape=[self.num_classes]), name="b_o")
                 self.l2_loss += tf.nn.l2_loss(w_o)
                 self.l2_loss += tf.nn.l2_loss(b_o)
