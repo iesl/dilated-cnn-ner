@@ -37,30 +37,36 @@ def compute_page_stats(page_stats_fp, thresholds=(0.1, 0.2)):
     total_docs = 0
     pretty_print = pprint.PrettyPrinter(indent=4)
 
-    threshold_violations_file = "../../data/arxiv_metadata_on_multiple_pages.txt"
+    threshold_violations_file = "../../data/arxiv_threshold_violations.txt"
     threshold_violations = {}
     total_threshold_violations = 0
+
+    improper_annotations_file = "../../data/arxiv_improper_annotations.txt"
+    improper_annotations = []
 
     with open(page_stats_fp, "r") as page_stats_fp:
         for stats_line in page_stats_fp:
 
             page_numbers = np.array([int(page_number) for page_number in stats_line.split()[1:-1]])
-            total_pages = int(stats_line.split()[-1])
-            metadata_page_boundary = 0
-            if np.sum(page_numbers) > 1:
-                metadata_page_boundary = np.max(page_numbers)/total_pages
-            for threshold in thresholds:
-                if metadata_page_boundary <= threshold:
-                    docs_within_thresholds[threshold] += 1
-                else:
-                    if threshold not in threshold_violations:
-                        threshold_violations[threshold] = []
-                    threshold_violations[threshold].append(stats_line.split()[0])
-                    total_threshold_violations += 1
+            if page_numbers.size > 0:
+                total_pages = int(stats_line.split()[-1])
+                metadata_page_boundary = 0
+                if np.sum(page_numbers) > 1:
+                    metadata_page_boundary = np.max(page_numbers)/total_pages
+                for threshold in thresholds:
+                    if metadata_page_boundary <= threshold:
+                        docs_within_thresholds[threshold] += 1
+                    else:
+                        if threshold not in threshold_violations:
+                            threshold_violations[threshold] = []
+                        threshold_violations[threshold].append(stats_line.split()[0])
+                        total_threshold_violations += 1
 
-            total_docs += 1
-            for page_number in page_numbers:
-                page_numbers_dict[page_number] += 1
+                total_docs += 1
+                page_numbers_dict[np.max(page_numbers)] += 1
+
+            else:
+                improper_annotations.append(stats_line.split()[0])
 
     if total_threshold_violations > 0:
         with open(threshold_violations_file, "w") as threshold_violations_fp:
@@ -69,15 +75,23 @@ def compute_page_stats(page_stats_fp, thresholds=(0.1, 0.2)):
                 for threshold_violation in threshold_violations[threshold]:
                     threshold_violations_fp.write(str(threshold) + "\t\t\t" + "\t\t\t".join(threshold_violation.split(":")) + "\n")
 
+    if len(improper_annotations) > 0:
+        with open(improper_annotations_file, "w") as improper_annotations_fp:
+            improper_annotations_fp.write("Doc Id\t\tDoc Stable Id \n")
+            for improper_annotationed_doc in improper_annotations:
+                improper_annotations_fp.write("\t\t\t".join(improper_annotationed_doc.split(":")) + "\n")
+
     print "Page Statistics: "
 
-    print "\nPage numbers: (page_number, frequency)"
+    print "\nPapers with last paper containing Metadata: (last_page_number, frequency)"
     pretty_print.pprint(sorted(normalize_dictionary(dictionary=page_numbers_dict, total=total_docs).items(), key=operator.itemgetter(1), reverse=True))
 
     print "\nPapers with Metadata pages within thresholds: (threshold, frequency)"
     pretty_print.pprint(sorted(normalize_dictionary(dictionary=docs_within_thresholds, total=total_docs).items(), key=operator.itemgetter(0)))
 
     print "\n{} documents with respective threshold violations are written to file {}".format(total_threshold_violations, threshold_violations_file)
+
+    print "\n{} documents with improper annotations are written to file {}".format(len(improper_annotations), improper_annotations_file)
 
     pass
 
