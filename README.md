@@ -19,6 +19,7 @@ Setup
   ```
   export DILATED_CNN_NER_ROOT=`pwd`
   export DATA_DIR=/path/to/conll-2003
+  export PYTHONPATH=$PYTHONPATH:/path/to/project/src/
   ```
 
 2. Get some pretrained word embeddings, e.g. [SENNA embeddings](http://ronan.collobert.com/senna/download.html) or
