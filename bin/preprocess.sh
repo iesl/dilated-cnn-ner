@@ -9,7 +9,7 @@ source $conf
 
 additional_args=${@:2}
 
-output_dir="$DILATED_CNN_NER_ROOT/data/$data_name-w$filter_width-$embeddings_name"
+output_dir="$DATA_DIR/data/$data_name-w$filter_width-$embeddings_name"
 vocab_param="--vocab $embeddings"
 labels_param=""
 char_param=""
@@ -38,7 +38,7 @@ if [[ "$update_vocab_file" != "" ]]; then
     update_vocab_param="--update_vocab $update_vocab_file"
 fi
 
-vocab_dir="$DILATED_CNN_NER_ROOT/data/vocabs"
+vocab_dir="$DATA_DIR/data/vocabs"
 echo "Writing extra vocab (cutoff $vocab_cutoff) to $update_vocab_file"
 mkdir -p $vocab_dir
 awk '{if (NF > 0) print $1}' "$raw_data_dir/${data_files[0]}" \
