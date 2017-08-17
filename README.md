@@ -1,28 +1,31 @@
-# dilated-cnn-ner
+# Arxiv Metadata tagger
 
-This code implements the models described in the paper
-"[Fast and Accurate Sequence Labeling with Iterated Dilated Convolutions](https://arxiv.org/abs/1702.02098)"
-by [Emma Strubell](https://cs.umass.edu/~strubell), [Patrick Verga](https://cs.umass.edu/~pat),
-[David Belanger](https://cs.umass.edu/~belanger) and [Andrew McCallum](https://cs.umass.edu/~mccallum).
+This code uses Iterated Dilated Convolutions (ID-CNNs) to perform a token based classification of metadata artifacts (Title, Authors, Abstract, Affiliations) for arxiv researach papers. 
+
+The implementation of ID-CNNs is borrowed from "[Dilated CNN NER](https://github.com/iesl/dilated-cnn-ner)".
 
 Requirements
 -----
 This code uses TensorFlow >= v1.0 and Python 2.7.
 
-It will probably train on a CPU, but honestly we haven't tried, and highly recommend training on a GPU.
-
-
 Setup
 -----
-1. Set up environment variables. For example, from the root directory of this project:
+1. Create a new experiment: 
+  ```
+  bash bin/create_experiment.sh -e=<EXPERIMENT_NAME>
+  ```
+  This copies the source files, creates appropriate folders to store input data, save tensorflow models, and save the results of the experiments. The paths mentioned in the bash script have to be modified for the respective environment.
+
+2. Set up environment variables for the experiment:
 
   ```
   export DILATED_CNN_NER_ROOT=`pwd`
-  export DATA_DIR=/path/to/conll-2003
-  export PYTHONPATH=$PYTHONPATH:/path/to/project/src/
+  export DATA_DIR=/path/to/input/files
+  export PYTHONPATH=$PYTHONPATH:/path/to/experiment/project/src/
+  export models_dir=/path/to/save/tensorflow/models
   ```
 
-2. Get some pretrained word embeddings, e.g. [SENNA embeddings](http://ronan.collobert.com/senna/download.html) or
+3. Get some pretrained word embeddings, e.g. [SENNA embeddings](http://ronan.collobert.com/senna/download.html) or
   [Glove embeddings](https://nlp.stanford.edu/projects/glove/). The code expects a space-separated file
   with one word and its embedding per line, e.g.:
    ```
@@ -30,17 +33,17 @@ Setup
    ```
    Make a directory for the embeddings:
    ```
-   mkdir -p data/embeddings
+   mkdir -p DATA_DIR/data/embeddings
    ```
    and place the file there.
 
 3. Perform all data preprocessing for a given configuration. For example:
 
   ```
-  ./bin/preprocess.sh conf/conll/dilated-cnn.conf
+  bash bin/preprocess.sh conf/arxiv/dilated-cnn.conf &>> /path/to/experiment/results/file
   ```
 
-  This calls `preprocess.py`, which loads the data from text files, maps the tokens, labels and any other features to
+  This calls `preprocess.py`, which loads the data from input files, maps the tokens, labels and positions 
   integers, and writes to TensorFlow tfrecords.
 
 Training
@@ -48,7 +51,7 @@ Training
 Once the data preprocessing is completed, you can train a tagger:
 
   ```
-  ./bin/train-cnn.sh conf/conll/dilated-cnn.conf
+  bash bin/train-cnn.sh conf/arxiv/dilated-cnn.conf &>> /path/to/experiment/results/file
   ```
 
 Evaluation
@@ -56,12 +59,12 @@ Evaluation
 By default, the trainer will write the model which achieved the best dev F1. To evaluate a saved model on the dev set:
 
   ```
-  ./bin/eval-cnn.sh conf/conll/dilated-cnn.conf --load_model path/to/model
+  bash bin/eval-cnn.sh conf/arxiv/dilated-cnn.conf --load_model path/to/model &>> /path/to/experiment/results/file
   ```
 To evaluate a saved model on the test set:
 
   ```
-  ./bin/eval-cnn.sh conf/conll/dilated-cnn.conf --load_model path/to/model test
+  bash bin/eval-cnn.sh conf/arxiv/dilated-cnn.conf --load_model path/to/model test &>> /path/to/experiment/results/file
   ```
 
 
