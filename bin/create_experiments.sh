@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 EXPERIMENT=""
 SOURCE=/path/to/git/repo/folder
