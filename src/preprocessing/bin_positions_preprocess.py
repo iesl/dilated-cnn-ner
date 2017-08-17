@@ -1,5 +1,6 @@
 from __future__ import division
 import numpy as np
+import math
 
 
 def get_binned_height_width(positions, num_height_bins, num_width_bins, height_indices, width_indices):
@@ -96,20 +97,30 @@ def bin_position_features(input_file, binned_file, num_x_bins, num_y_bins):
 
 
 def train_test_split(input_file, output_dir, number_data_points):
-    train_limit = int(0.6 * number_data_points)
-    dev_limit = train_limit + int(0.2 * number_data_points)
+    train_limit = int(math.ceil(0.6 * number_data_points))
+    dev_limit = int(math.ceil(0.8 * number_data_points))
     train_data_points, dev_data_points, test_data_points, data_point, i = [], [], [], [], 0
+
+    shuffled_indices = range(number_data_points)
+    np.random.shuffle(shuffled_indices)
+
+    train_indices = shuffled_indices[:train_limit]
+    print len(train_indices)
+    dev_indices = shuffled_indices[train_limit:dev_limit]
+    print len(dev_indices)
+    test_indices = shuffled_indices[dev_limit:]
+    print len(test_indices)
 
     # print train_limit, dev_limit
 
     with open(input_file, "r") as binned_positions_file:
         for data in binned_positions_file:
             if data == '\n' and len(data_point) > 0:
-                if i < train_limit:
+                if i in train_indices:
                     train_data_points.append(data_point)
-                elif train_limit <= i < dev_limit:
+                elif i in dev_indices:
                     dev_data_points.append(data_point)
-                elif i >= dev_limit:
+                elif i in test_indices:
                     test_data_points.append(data_point)
                 data_point = []
                 i += 1
@@ -192,7 +203,7 @@ def main():
 
     output_file, data_points_count = get_binned_centroid_measurements(input_file=input_file, binned_file=binned_file,
                                                                       num_x_bins=num_x_bins, num_y_bins=num_y_bins)
-    print "Binned positions written into file: " + output_file
+    print "{} Binned positions written into file: {}".format(data_points_count, output_file)
 
     train_test_split(input_file=output_file, output_dir=train_test_dir, number_data_points=data_points_count)
     print "Train, Dev, Test files written into respective files in directory: " + train_test_dir
