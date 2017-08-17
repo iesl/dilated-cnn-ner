@@ -1,11 +1,12 @@
 #/bin/bash
 
 EXPERIMENT=""
-SOURCE=/home/ashastry/arxiv_metadata_tagger
-TARGET=/home/ashastry/experiments/arxiv_metadata_tagger
-SAVED_MODELS=/iesl/canvas/ashastry/saved_models/arxiv_metadata_tagger
-DATA_DIR=/iesl/canvas/ashastry/data/arxiv_metadata_tagger
-RESULTS_DIR=/iesl/canvas/ashastry/results/arxiv_metadata_tagger
+SOURCE=/path/to/git/repo/folder
+TARGET=/path/to/copy/source/files
+SAVED_MODELS=/path/to/root/to/save/tensorflow/models
+DATA_DIR=/path/to/root/of/folder/to/copy/data
+RESULTS_DIR=/path/to/root/of/folder/to/save/results
+EMBEDDINGS_PATH=/path/to/pretrained/embeddings/file
 
 for i in "$@"
 do
@@ -37,7 +38,7 @@ mkdir -p "${DATA_DIR}/${EXPERIMENT}/arxiv"
 echo "Created folder to store train, dev, and test files at location ${DATA_DIR}/${EXPERIMENT}/arxiv"
 mkdir -p "${DATA_DIR}/${EXPERIMENT}/data/embeddings"
 echo "Created folder to store embeddings for input data at location ${DATA_DIR}/${EXPERIMENT}/data/embeddings"
-cp /iesl/canvas/ashastry/data/embeddings/lample-embeddings-pre.txt ${DATA_DIR}/${EXPERIMENT}/data/embeddings/lample-embeddings-pre.txt
+cp ${EMBEDDINGS_PATH} ${DATA_DIR}/${EXPERIMENT}/data/embeddings/lample-embeddings-pre.txt
 echo "Copied the embeddings file to above location"
 
 rm -rf ${RESULTS_DIR}/${EXPERIMENT}
