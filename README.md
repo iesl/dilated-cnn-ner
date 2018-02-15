@@ -60,7 +60,7 @@ By default, the trainer will write the model which achieved the best dev F1. To 
 To evaluate a saved model on the test set:
 
   ```
-  ./bin/eval-cnn.sh conf/conll/dilated-cnn.conf --load_model path/to/model test
+  ./bin/eval-cnn.sh conf/conll/dilated-cnn.conf test --load_model path/to/model
   ```
 
 
