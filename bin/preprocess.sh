@@ -40,8 +40,9 @@ fi
 vocab_dir="$DILATED_CNN_NER_ROOT/data/vocabs"
 echo "Writing extra vocab (cutoff $vocab_cutoff) to $update_vocab_file"
 mkdir -p $vocab_dir
+# if train is a directory, then assume ontonotes/conll-2012
 if [ -d $raw_data_dir/${data_files[0]} ]; then
-    cat "$raw_data_dir/${data_files[0]}"/* \
+    cat "$raw_data_dir/${data_files[0]}"/*/*_gold_conll \
          | awk '{if (NF > 0 && substr($1,1,1) !~ /#/) print $4}' \
          | sed 's/[0-9]/0/g' \
          | sort \
