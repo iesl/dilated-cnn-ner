@@ -140,7 +140,7 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
     current_tag = ''
     for i, line in enumerate(lines):
         line = line.strip()
-        if line:
+        if line and not (line[0] == "#" and FLAGS.dataset =="ontonotes"):
             token_str, label_str, current_tag = get_str_label_from_line_conll(line) if FLAGS.dataset == 'conll2003' else get_str_label_from_line_ontonotes(line, current_tag)
 
             # skip docstart markers
