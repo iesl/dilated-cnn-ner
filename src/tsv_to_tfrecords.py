@@ -78,23 +78,28 @@ def get_str_label_from_line_conll(line):
 
 def get_str_label_from_line_ontonotes(line, current_tag):
     parts = line.split()
-    token_str = parts[3]
-    onto_label_str = parts[10]
-    if onto_label_str.startswith('('):
-        if onto_label_str.endswith(')'):
-            label_str = 'U-%s' % onto_label_str[1:-1]
+    try:
+        token_str = parts[3]
+        onto_label_str = parts[10]
+        if onto_label_str.startswith('('):
+            if onto_label_str.endswith(')'):
+                label_str = 'U-%s' % onto_label_str[1:-1]
+                current_tag = ''
+            else:
+                current_tag = onto_label_str[1:-1]
+                label_str = 'B-%s' % current_tag
+        elif onto_label_str.endswith(')'):
+            label_str = 'L-%s' % current_tag
             current_tag = ''
+        elif current_tag != '':
+            label_str = 'I-%s' % current_tag
         else:
-            current_tag = onto_label_str[1:-1]
-            label_str = 'B-%s' % current_tag
-    elif onto_label_str.endswith(')'):
-        label_str = 'L-%s' % current_tag
-        current_tag = ''
-    elif current_tag != '':
-        label_str = 'I-%s' % current_tag
-    else:
-        label_str = 'O'
-    return token_str, label_str, current_tag
+            label_str = 'O'
+        return token_str, label_str, current_tag
+    except Exception as e:
+        print("Caught exception: %s" % ve.message)
+        print("Line: %s" % line)
+        raise
 
 
 def make_example(writer, lines, label_map, token_map, shape_map, char_map, update_vocab, update_chars):
