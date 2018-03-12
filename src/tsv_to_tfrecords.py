@@ -7,7 +7,7 @@ import os
 import sys
 import tensorflow as tf
 import numpy as np
-from os import listdir
+import os
 
 tf.app.flags.DEFINE_string('in_file', 'naacl-data.tsv', 'tsv file containing string data')
 tf.app.flags.DEFINE_string('vocab', '', 'file containing vocab (empty means make new vocab)')
@@ -145,7 +145,7 @@ def make_example(writer, lines, label_map, token_map, shape_map, char_map, updat
     current_tag = ''
     for i, line in enumerate(lines):
         line = line.strip()
-        if line and not (line[0] == "#" and FLAGS.dataset =="ontonotes"):
+        if line:
             token_str, label_str, current_tag = get_str_label_from_line_conll(line) if FLAGS.dataset == 'conll2003' else get_str_label_from_line_ontonotes(line, current_tag)
 
             # skip docstart markers
@@ -417,53 +417,52 @@ def tsv_to_examples():
             print("Output directory not found: %s" % FLAGS.out_dir)
         data_type = FLAGS.in_file.strip().split("/")[-1]
         writer = tf.python_io.TFRecordWriter('%s/protos/%s_examples.proto' % (FLAGS.out_dir, data_type))
-        for fname in listdir(FLAGS.in_file):
-            with open(FLAGS.in_file + "/" + fname) as f:
-                line_buf = []
-                line = f.readline()
-                line_idx = 1
-                while line:
-                    line = line.strip()
+        for fname in os.listdir(FLAGS.in_file):
+            if fname.endswith("_gold_conll"):
+                with open(FLAGS.in_file + "/" + fname) as f:
+                    line_buf = []
+                    line = f.readline()
+                    line_idx = 1
+                    while line:
+                        line = line.strip()
 
-                    if FLAGS.documents:
-                        if line.startswith("#"):
-                            if line_buf:
-                                # reached the end of a document; process the lines
-                                toks, oov, sent = make_example(writer, line_buf, label_map, token_map, shape_map,
-                                                               char_map, update_vocab, update_chars)
+                        if FLAGS.documents:
+                            if line.startswith("#"):
+                                if line_buf:
+                                    # reached the end of a document; process the lines
+                                    toks, oov, sent = make_example(writer, line_buf, label_map, token_map, shape_map,
+                                                                   char_map, update_vocab, update_chars)
+                                    num_tokens += toks
+                                    num_oov += oov
+                                    num_sentences += sent
+                                    num_docs += 1
+                                    line_buf = []
+                            else:
+                                # print(line)
+                                if line_buf or (not line_buf and line):
+                                    line_buf.append(line)
+                                    line_idx += 1
+                        else:
+                            # if the line is not empty, add it to the buffer
+                            if line:
+                                if not line.startswith("#"):
+                                    line_buf.append(line)
+                                    line_idx += 1
+                            # otherwise, if there's stuff in the buffer, process it
+                            elif line_buf:
+                                # reached the end of a sentence; process the line
+                                toks, oov, sent = make_example(writer, line_buf, label_map, token_map, shape_map, char_map,
+                                                               update_vocab, update_chars)
                                 num_tokens += toks
                                 num_oov += oov
                                 num_sentences += sent
-                                num_docs += 1
                                 line_buf = []
-                        else:
-                            # print(line)
-                            if line_buf or (not line_buf and line):
-                                line_buf.append(line)
-                                line_idx += 1
-
-
-                    else:
-                        # if the line is not empty, add it to the buffer
-                        if line:
-                            if not line.startswith("#"):
-                                line_buf.append(line)
-                                line_idx += 1
-                        # otherwise, if there's stuff in the buffer, process it
-                        elif line_buf:
-                            # reached the end of a sentence; process the line
-                            toks, oov, sent = make_example(writer, line_buf, label_map, token_map, shape_map, char_map,
-                                                           update_vocab, update_chars)
-                            num_tokens += toks
-                            num_oov += oov
-                            num_sentences += sent
-                            line_buf = []
-                    # print("reading line %d" % line_idx)
-                    line = f.readline()
-                if line_buf:
-                    make_example(writer, line_buf, label_map, token_map, shape_map, char_map, update_vocab,
-                                 update_chars)
-                    # print("Processed %d sentences" % num_sentences)
+                        # print("reading line %d" % line_idx)
+                        line = f.readline()
+                    if line_buf:
+                        make_example(writer, line_buf, label_map, token_map, shape_map, char_map, update_vocab,
+                                     update_chars)
+                        # print("Processed %d sentences" % num_sentences)
         writer.close()
 
         # export the string->int maps to file
