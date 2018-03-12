@@ -97,7 +97,7 @@ def get_str_label_from_line_ontonotes(line, current_tag):
             label_str = 'O'
         return token_str, label_str, current_tag
     except Exception as e:
-        print("Caught exception: %s" % ve.message)
+        print("Caught exception: %s" % e.message)
         print("Line: %s" % line)
         raise
 
