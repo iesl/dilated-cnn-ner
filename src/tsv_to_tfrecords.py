@@ -418,7 +418,7 @@ def tsv_to_examples():
         data_type = FLAGS.in_file.strip().split("/")[-1]
         writer = tf.python_io.TFRecordWriter('%s/protos/%s_examples.proto' % (FLAGS.out_dir, data_type))
         for fname in os.listdir(FLAGS.in_file):
-            if fname.endswith("_gold_conll"):
+            if fname.endswith("_conll"):
                 with open(FLAGS.in_file + "/" + fname) as f:
                     line_buf = []
                     line = f.readline()
