@@ -2,12 +2,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import re
-import os
+import re, os
 import sys
 import tensorflow as tf
 import numpy as np
-import os
+from glob import glob
 
 tf.app.flags.DEFINE_string('in_file', 'naacl-data.tsv', 'tsv file containing string data')
 tf.app.flags.DEFINE_string('vocab', '', 'file containing vocab (empty means make new vocab)')
@@ -55,7 +54,7 @@ token_int_str_map = {}
 char_int_str_map = {}
 
 pad_width = int(FLAGS.window_size/2)
-
+onto_genre = ["bn", "bc", "nw", "mz", "tc", "wb"]
 
 def _int64_feature(value): return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
@@ -413,19 +412,28 @@ def tsv_to_examples():
             print(num_docs, file=f)
 
     else:
-        if not os.path.exists(FLAGS.out_dir + "/protos"):
+        if not os.path.exists(FLAGS.out_dir):
             print("Output directory not found: %s" % FLAGS.out_dir)
-        data_type = FLAGS.in_file.strip().split("/")[-1]
-        writer = tf.python_io.TFRecordWriter('%s/protos/%s_examples.proto' % (FLAGS.out_dir, data_type))
-        for fname in os.listdir(FLAGS.in_file):
-            if fname.endswith("_conll"):
-                with open(FLAGS.in_file + "/" + fname) as f:
+        if not os.path.exists(FLAGS.out_dir + "/protos"):
+            os.mkdir(FLAGS.out_dir + "/protos")             
+        for data_type in onto_genre:
+            num_tokens = 0
+            num_sentences = 0
+            num_oov = 0
+            num_docs = 0
+            writer = tf.python_io.TFRecordWriter('%s/protos/%s_examples.proto' % (FLAGS.out_dir, data_type))
+            file_list = [y for x in os.walk(FLAGS.in_file) for y in glob(os.path.join(x[0], '*_gold_conll'))\
+                         if "/"+data_type+"/" in y and "/english/" in y]
+            
+            for f_path in file_list:
+
+                with open(f_path) as f:
                     line_buf = []
                     line = f.readline()
                     line_idx = 1
                     while line:
                         line = line.strip()
-
+    
                         if FLAGS.documents:
                             if line.startswith("#"):
                                 if line_buf:
@@ -462,20 +470,20 @@ def tsv_to_examples():
                     if line_buf:
                         make_example(writer, line_buf, label_map, token_map, shape_map, char_map, update_vocab,
                                      update_chars)
-                        # print("Processed %d sentences" % num_sentences)
-        writer.close()
+                    # print("Processed %d sentences" % num_sentences)
+            writer.close()
 
-        # export the string->int maps to file
-        for f_str, id_map in [('label', label_map), ('token', token_map), ('shape', shape_map), ('char', char_map)]:
-            with open("%s/%s.txt" % (FLAGS.out_dir, f_str), 'w') as f:
-                [f.write(s + '\t' + str(i) + '\n') for (s, i) in id_map.items()]
-
-        # export data sizes to file
-        with open("%s/%s_sizes.txt" % (FLAGS.out_dir, data_type), 'w') as f:
-            print(num_sentences, file=f)
-            print(num_tokens, file=f)
-            print(num_docs, file=f)
-
+            # export the string->int maps to file
+            for f_str, id_map in [('label', label_map), ('token', token_map), ('shape', shape_map), ('char', char_map)]:
+                with open("%s/%s.txt" % (FLAGS.out_dir, f_str), 'w') as f:
+                    [f.write(s + '\t' + str(i) + '\n') for (s, i) in id_map.items()]
+    
+            # export data sizes to file
+            with open("%s/%s_sizes.txt" % (FLAGS.out_dir, data_type), 'w') as f:
+                print(num_sentences, file=f)
+                print(num_tokens, file=f)
+                print(num_docs, file=f)
+            
     print("Embeddings coverage: %2.2f%%" % ((1-(num_oov/num_tokens)) * 100))
 
 
