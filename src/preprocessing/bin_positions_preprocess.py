@@ -208,7 +208,7 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "hx:y:i:b:d:", ["xbins=", "ybins=", "input=", "binned=", "traintestdir="])
     except getopt.GetoptError:
-        print 'python bin_positions_preprocess.py -x <x_bins> -y <y_bing> -i <input_file> -b <binned_output_file> -d <train_test_dir>'
+        print 'python bin_positions_preprocess.py -x <x_bins> -y <y_bins> -i <input_file> -b <binned_output_file> -d <train_test_dir>'
         sys.exit(2)
 
     for opt, arg in opts:
