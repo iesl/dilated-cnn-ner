@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 import math
+import sys, getopt
 
 
 def get_binned_height_width(positions, num_height_bins, num_width_bins, height_indices, width_indices):
@@ -36,8 +37,11 @@ def get_centroid_measurements(position):
 def get_binned_positions(positions, num_x_bins, num_y_bins, page_coordinates, x_bin_indices, y_bin_indices):
     binned_positions = []
 
-    x_bins = np.linspace(start=page_coordinates[0], stop=page_coordinates[2], num=num_x_bins)
-    y_bins = np.linspace(start=page_coordinates[1], stop=page_coordinates[3], num=num_y_bins)
+    y_bins = np.linspace(start=positions.min(axis=0)[1], stop=positions.max(axis=0)[1], num=num_y_bins)
+    x_bins = np.linspace(start=positions.min(axis=0)[0], stop=positions.max(axis=0)[0], num=num_x_bins)
+
+    # x_bins = np.linspace(start=page_coordinates[0], stop=page_coordinates[2], num=num_x_bins)
+    # y_bins = np.linspace(start=page_coordinates[1], stop=page_coordinates[3], num=num_y_bins)
 
     for i, position in enumerate(positions):
         binned_position = []
@@ -169,7 +173,8 @@ def get_binned_centroid_measurements(input_file, binned_file, num_x_bins, num_y_
                         binned_positions = get_binned_height_width(positions=np.array(positions), num_height_bins=2,
                                                                    num_width_bins=2, height_indices=(3,),
                                                                    width_indices=(2,))
-                        binned_positions = get_binned_positions(positions=np.array(binned_positions), num_x_bins=num_x_bins,
+                        binned_positions = get_binned_positions(positions=np.array(binned_positions),
+                                                                num_x_bins=num_x_bins,
                                                                 num_y_bins=num_y_bins,
                                                                 page_coordinates=page_coordinates, x_bin_indices=(0,),
                                                                 y_bin_indices=(1,))
@@ -196,10 +201,30 @@ def get_binned_centroid_measurements(input_file, binned_file, num_x_bins, num_y_
     return output_file, data_points_count
 
 
-def main():
-    num_x_bins, num_y_bins = 3, 4
-    input_file, binned_file = "../../data/arxiv_ordered.txt", "../../data/arxiv_binned.txt"
-    train_test_dir = "../../data/"
+def main(argv):
+    num_x_bins, num_y_bins = 0, 0
+    input_file, binned_file, train_test_dir = "", "", ""
+
+    try:
+        opts, args = getopt.getopt(argv, "hx:y:i:b:d:", ["xbins=", "ybins=", "input=", "binned=", "traintestdir="])
+    except getopt.GetoptError:
+        print 'python bin_positions_preprocess.py -x <x_bins> -y <y_bing> -i <input_file> -b <binned_output_file> -d <train_test_dir>'
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt == '-h':
+            print 'python bin_positions_preprocess.py -x <x_bins> -y <y_bing> -i <input_file> -b <binned_output_file> -d <train_test_dir>'
+            sys.exit()
+        elif opt in ("-x", "--xbins"):
+            num_x_bins = arg
+        elif opt in ("-y", "--ybins"):
+            num_y_bins = arg
+        elif opt in ("-i", "--input"):
+            input_file = arg
+        elif opt in ("-b", "--binned"):
+            binned_file = arg
+        elif opt in ("-d", "--traintestdir"):
+            train_test_dir = arg
 
     output_file, data_points_count = get_binned_centroid_measurements(input_file=input_file, binned_file=binned_file,
                                                                       num_x_bins=num_x_bins, num_y_bins=num_y_bins)
@@ -210,4 +235,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
