@@ -37,8 +37,20 @@ Setup
    ```
    and place the file there.
 
-3. Perform all data preprocessing for a given configuration. For example:
-
+4. Perform all preprocessing for a given configuration.
+  
+  4.1. Data Preprocessing - 1:
+  ```
+  python src/preprocessing/bin_positions_preprocess.py -x <x_bins> -y <y_bins> -i <input_file> -b <binned_output_file> -d <train_test_dir>'
+  ```
+  Where the input file is in the format (one contiguous group of tokens is a single page of the paper)
+  ```
+  0:0:<page_width>:<page_height>
+  token_1 <top_left_x_position>:<top_left_y_position>:<bottom_right_x_position>:<bottom_right_y_position> * I-<label>
+  token_2 <top_left_x_position>:<top_left_y_position>:<bottom_right_x_position>:<bottom_right_y_position> * I-<label>
+  ...
+  ```
+  4.2. Data Preprocessing - 2:
   ```
   bash bin/preprocess.sh conf/arxiv/dilated-cnn.conf &>> /path/to/experiment/results/file
   ```
