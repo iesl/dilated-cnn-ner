@@ -25,7 +25,7 @@ def get_label_stats(label_stats_file):
                 total_labels += 1
                 label_stats[stats_line.split()[-1]] += 1
 
-    return sorted(normalize_dictionary(dictionary=label_stats, total=total_labels).items(), key=operator.itemgetter(1))
+    return sorted(label_stats.items(), key=operator.itemgetter(1))
 
     pass
 
@@ -49,10 +49,10 @@ def compute_page_stats(page_stats_fp, thresholds=(0.1, 0.2)):
 
             page_numbers = np.array([int(page_number) for page_number in stats_line.split()[1:-1]])
             if page_numbers.size > 0:
-                total_pages = int(stats_line.split()[-1])
+                pages_in_paper = int(stats_line.split()[-1])
                 metadata_page_boundary = 0
                 if np.sum(page_numbers) > 1:
-                    metadata_page_boundary = np.max(page_numbers)/total_pages
+                    metadata_page_boundary = np.max(page_numbers)/pages_in_paper
                 for threshold in thresholds:
                     if metadata_page_boundary <= threshold:
                         docs_within_thresholds[threshold] += 1
@@ -83,7 +83,7 @@ def compute_page_stats(page_stats_fp, thresholds=(0.1, 0.2)):
 
     print "Page Statistics: "
 
-    print "\nPapers with last paper containing Metadata: (last_page_number, frequency)"
+    print "\nPapers with last page containing Metadata: (last_page_number, frequency)"
     pretty_print.pprint(sorted(normalize_dictionary(dictionary=page_numbers_dict, total=total_docs).items(), key=operator.itemgetter(1), reverse=True))
 
     print "\nPapers with Metadata pages within thresholds: (threshold, frequency)"
@@ -99,14 +99,14 @@ def compute_page_stats(page_stats_fp, thresholds=(0.1, 0.2)):
 def main():
 
     page_stats_file = "../../data/arxiv_page_stats.txt"
-    label_stats_file = "../../data/arxiv_unordered.txt"
+    label_stats_file = "../../data/arxiv_ordered.txt"
 
     pretty_print = pprint.PrettyPrinter(indent=4)
 
-    compute_page_stats(page_stats_fp=page_stats_file, thresholds=(0.1, 0.2))
+    # compute_page_stats(page_stats_fp=page_stats_file, thresholds=(0.1, 0.2))
 
-    # print "Label Statistics: "
-    # pretty_print.pprint(get_label_stats(label_stats_file=label_stats_file))
+    print "Label Statistics: "
+    pretty_print.pprint(get_label_stats(label_stats_file=label_stats_file))
 
     pass
 

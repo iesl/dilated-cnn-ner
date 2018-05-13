@@ -22,7 +22,7 @@ FLAGS = tf.app.flags.FLAGS
 
 
 def main(argv):
-    print("CUDA_VISIBLE_DEVICES=", os.environ['CUDA_VISIBLE_DEVICES'])
+    # print("CUDA_VISIBLE_DEVICES=", os.environ['CUDA_VISIBLE_DEVICES'])
 
     train_dir = FLAGS.train_dir
     dev_dir = FLAGS.dev_dir
