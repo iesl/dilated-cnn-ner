@@ -12,7 +12,7 @@ Setup
 -----
 1. Create a new experiment: 
   ```
-  bash bin/create_experiment.sh -e=<EXPERIMENT_NAME>
+  bash bin/create_experiments.sh -e=<EXPERIMENT_NAME>
   ```
   This copies the source files, creates appropriate folders to store input data, save tensorflow models, and save the results of the experiments. The paths mentioned in the bash script have to be modified for the respective environment.
 
