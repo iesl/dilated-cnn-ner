@@ -7,7 +7,7 @@ by [Emma Strubell](https://cs.umass.edu/~strubell), [Patrick Verga](https://cs.u
 
 Requirements
 -----
-This code uses TensorFlow >= v1.0 and Python 2.7.
+This code uses TensorFlow v[1.0, 1.4) and Python 2.7.
 
 It will probably train on a CPU, but honestly we haven't tried, and highly recommend training on a GPU.
 
