@@ -50,6 +50,16 @@ Setup
     token_1 <top_left_x_position>:<top_left_y_position>:<bottom_right_x_position>:<bottom_right_y_position> * I-<label>
     token_2 <top_left_x_position>:<top_left_y_position>:<bottom_right_x_position>:<bottom_right_y_position> * I-<label>
     ```
+    The method to calculate these values is as follows:
+    ```
+    token = “cnn”
+
+    top-left-x = x of “c”
+    top-left-y = y of “c”
+
+    bottom-right-x = x of “n” + width of “n”
+    bottom-right-y = y of “n” + height of “n”
+    ```
 
 5. Perform all preprocessing for a given configuration.
   
