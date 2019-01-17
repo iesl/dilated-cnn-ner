@@ -1,12 +1,12 @@
 #!/bin/bash
 
 EXPERIMENT=""
-SOURCE=/path/to/git/repo/folder
-TARGET=/path/to/copy/source/files
-SAVED_MODELS=/path/to/root/to/save/tensorflow/models
-DATA_DIR=/path/to/root/of/folder/to/copy/data
-RESULTS_DIR=/path/to/root/of/folder/to/save/results
-EMBEDDINGS_PATH=/path/to/pretrained/embeddings/file
+SOURCE="$DILATED_CNN_NER_ROOT/arxiv-metadata-tagger"
+TARGET="$DILATED_CNN_NER_ROOT/copy" ## create a copy directory in the root directory
+SAVED_MODELS="$DILATED_CNN_NER_ROOT/arxiv-metadata-tagger/models"
+DATA_DIR="$DILATED_CNN_NER_ROOT/data"
+RESULTS_DIR="$DILATED_CNN_NER_ROOT/arxiv-metadata-tagger/results"
+EMBEDDINGS_PATH="$DILATED_CNN_NER_ROOT/data/embeddings/glove.6B.100d.txt"
 
 for i in "$@"
 do

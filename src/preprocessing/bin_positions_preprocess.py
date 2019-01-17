@@ -25,10 +25,13 @@ def get_binned_height_width(positions, num_height_bins, num_width_bins, height_i
 
 def get_centroid_measurements(position):
     # page_number = int(position[0])
-    centroid_x = int(position[1]) + ((int(position[3]) - int(position[1])) / 2)
-    centroid_y = int(position[2]) + ((int(position[4]) - int(position[2])) / 2)
-    width = int(position[3]) - int(position[1])
-    height = int(position[4]) - int(position[2])
+
+    ## Debugging
+    #print position
+    centroid_x = int(position[0]) + ((int(position[2]) - int(position[0])) / 2)
+    centroid_y = int(position[1]) + ((int(position[3]) - int(position[1])) / 2)
+    width = int(position[2]) - int(position[0])
+    height = int(position[3]) - int(position[1])
     # width_height_ratio = (int(position[3]) - int(position[1])) / (int(position[4]) - int(position[2]))
 
     return [centroid_x, centroid_y, width, height]
@@ -37,11 +40,12 @@ def get_centroid_measurements(position):
 def get_binned_positions(positions, num_x_bins, num_y_bins, page_coordinates, x_bin_indices, y_bin_indices):
     binned_positions = []
 
-    y_bins = np.linspace(start=positions.min(axis=0)[1], stop=positions.max(axis=0)[1], num=num_y_bins)
-    x_bins = np.linspace(start=positions.min(axis=0)[0], stop=positions.max(axis=0)[0], num=num_x_bins)
+    # print positions.min(axis=0),positions.max(axis=0)
+    # y_bins = np.linspace(start=positions.min(axis=0)[1], stop=positions.max(axis=0)[1], num=num_y_bins)
+    # x_bins = np.linspace(start=positions.min(axis=0)[0], stop=positions.max(axis=0)[0], num=num_x_bins)
 
-    # x_bins = np.linspace(start=page_coordinates[0], stop=page_coordinates[2], num=num_x_bins)
-    # y_bins = np.linspace(start=page_coordinates[1], stop=page_coordinates[3], num=num_y_bins)
+    x_bins = np.linspace(start=page_coordinates[0], stop=page_coordinates[2], num=num_x_bins)
+    y_bins = np.linspace(start=page_coordinates[1], stop=page_coordinates[3], num=num_y_bins)
 
     for i, position in enumerate(positions):
         binned_position = []
@@ -101,9 +105,12 @@ def bin_position_features(input_file, binned_file, num_x_bins, num_y_bins):
 
 
 def train_test_split(input_file, output_dir, number_data_points):
-    train_limit = int(math.ceil(0.6 * number_data_points))
-    dev_limit = int(math.ceil(0.8 * number_data_points))
+    print "number_data_points:",number_data_points
+    train_limit = int(math.ceil(0.5 * number_data_points))
+    dev_limit = int(math.ceil(0.7 * number_data_points))
+    print "train_limit:",train_limit,"dev_limit:",dev_limit
     train_data_points, dev_data_points, test_data_points, data_point, i = [], [], [], [], 0
+    
 
     shuffled_indices = range(number_data_points)
     np.random.shuffle(shuffled_indices)
@@ -116,6 +123,7 @@ def train_test_split(input_file, output_dir, number_data_points):
     print len(test_indices)
 
     # print train_limit, dev_limit
+    
 
     with open(input_file, "r") as binned_positions_file:
         for data in binned_positions_file:
@@ -161,15 +169,18 @@ def get_binned_centroid_measurements(input_file, binned_file, num_x_bins, num_y_
             for data in data_file:
                 if data != "\n":
                     if len(data.split()) > 1:
+
+                        ##Debugging
+                        #print data
                         tokens.append(data.split()[0])
                         labels.append(data.split()[3])
-                        positions.append(
-                            [float(value) for value in get_centroid_measurements(data.split()[1].split(":"))])
+                        positions.append([float(value) for value in get_centroid_measurements(data.split()[1].split(":"))])
                     else:
                         page_coordinates = [int(coordinate) for coordinate in data.split(":")]
                 else:
                     if len(tokens) and len(positions) and len(labels) and np.sum(page_coordinates) != -4:
                         data_points_count += 1
+                        print data_points_count
                         binned_positions = get_binned_height_width(positions=np.array(positions), num_height_bins=2,
                                                                    num_width_bins=2, height_indices=(3,),
                                                                    width_indices=(2,))
@@ -183,9 +194,10 @@ def get_binned_centroid_measurements(input_file, binned_file, num_x_bins, num_y_
                                 " ".join([tokens[i], ":".join(binned_positions[i]), "*", labels[i]]) + "\n")
                         tokens, labels, positions = [], [], []
                         binned_positions_file.write("\n")
-
+        print len(tokens),len(positions),len(labels),np.sum(page_coordinates)
         if len(tokens) and len(positions) and len(labels) and np.sum(page_coordinates) != -4:
             data_points_count += 1
+            print "data_points_count",data_points_count
             binned_positions = get_binned_height_width(positions=np.array(positions), num_height_bins=2,
                                                        num_width_bins=2, height_indices=(3,),
                                                        width_indices=(2,))
@@ -225,9 +237,17 @@ def main(argv):
             binned_file = arg
         elif opt in ("-d", "--traintestdir"):
             train_test_dir = arg
+    
+    ## Debugging
+    
+    print num_x_bins
+    print num_y_bins
+    print input_file
+    print binned_file
+    print train_test_dir
 
-    output_file, data_points_count = get_binned_centroid_measurements(input_file=input_file, binned_file=binned_file,
-                                                                      num_x_bins=num_x_bins, num_y_bins=num_y_bins)
+
+    output_file, data_points_count = get_binned_centroid_measurements(input_file=input_file, binned_file=binned_file,num_x_bins=num_x_bins, num_y_bins=num_y_bins)
     print "{} Binned positions written into file: {}".format(data_points_count, output_file)
 
     train_test_split(input_file=output_file, output_dir=train_test_dir, number_data_points=data_points_count)

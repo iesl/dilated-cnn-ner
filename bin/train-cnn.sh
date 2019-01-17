@@ -31,7 +31,7 @@ if [[ "$pretrained_model" != "" ]]; then
     load_pretrained_param="--load_dir $pretrained_model"
 fi
 
-cmd="python src/training/train.py \
+cmd="python $DILATED_CNN_NER_ROOT/arxiv-metadata-tagger/src/training/train.py \
 --train_dir $train_dir \
 --dev_dir $dev_dir \
 --maps_dir $maps_dir \

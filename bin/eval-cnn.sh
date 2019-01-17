@@ -17,7 +17,7 @@ fi
 # star escaping
 dev_fixed=`echo "$dev_dir" | sed 's/\*/\\\*/'`
 
-cmd="$DILATED_CNN_NER_ROOT/bin/train-cnn.sh \
+cmd="$DILATED_CNN_NER_ROOT/arxiv-metadata-tagger/bin/train-cnn.sh \
 $conf \
 --evaluate_only \
 --train_eval \
