@@ -77,13 +77,15 @@ Setup
       This calls `preprocess.py`, which loads the data from input files, maps the tokens, labels and positions 
     integers, and writes to TensorFlow tfrecords.
 
-6. Training
+6. Training:
+
     Once the data preprocessing is completed, you can train a tagger:
     ```
     bash $DILATED_CNN_NER_ROOT/arxiv-metadata-tagger/bin/train-cnn.sh $DILATED_CNN_NER_ROOT/arxiv-metadata-tagger/conf/arxiv/dilated-cnn.conf >> $DILATED_CNN_NER_ROOT/arxiv-metadata-tagger/results/log_train.txt
     ```
 
-7. Evaluation
+7. Evaluation:
+
     By default, the trainer will write the model which achieved the best dev F1. 
     To evaluate a saved model on the dev set:
     ```
