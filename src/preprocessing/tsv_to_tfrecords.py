@@ -155,14 +155,21 @@ def make_example(writer, lines, label_map, token_map, shape_map, position_map, c
             # convert label to BILOU encoding
             label_bilou = label_str
             # handle cases where we need to update the last token we processed
-            if label_str == "O" or label_str[0] == "B" or (last_label != "O" and label_str[2] != last_label[2]):
+            # print(label_str)
+            # print(label_str[0])
+            # print(last_label)
+            # # print(label_str[2])
+            # print("last_label:",last_label)
+            # print(last_label)
+            if label_str == "O" or label_str[0] == "B" or (last_label != "O" and label_str != last_label):
                 if last_label[0] == "I":
                     labels[-1] = "L" + labels[-1][1:]
                 elif last_label[0] == "B":
                     labels[-1] = "U" + labels[-1][1:]
             if label_str[0] == "I":
-                if last_label == "O" or label_str[2] != last_label[2]:
-                    label_bilou = "B-" + label_str[2:]
+                if last_label == "O" or label_str != last_label:
+                    if len(label_str)>1:
+                        label_bilou = "B-" + label_str[2:]
 
             if token_str_normalized not in token_map:
                 oov_count += 1
@@ -321,6 +328,7 @@ def tsv_to_examples():
     # load vocab if we have one
     if FLAGS.vocab != '':
         update_vocab = False
+        print("FLAGS.vocab is: ", FLAGS.vocab)
         with open(FLAGS.vocab, 'r') as f:
             for line in f.readlines():
                 word = line.strip().split(" ")[0]

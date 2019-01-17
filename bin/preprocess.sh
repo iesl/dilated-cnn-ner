@@ -39,6 +39,10 @@ if [[ "$update_vocab_file" != "" ]]; then
 fi
 
 vocab_dir="$DATA_DIR/data/vocabs"
+echo "vocab_dir:"
+echo $vocab_dir
+echo "update_vocab_file"
+echo $update_vocab_file
 echo "Writing extra vocab (cutoff $vocab_cutoff) to $update_vocab_file"
 mkdir -p $vocab_dir
 awk '{if (NF > 0) print $1}' "$raw_data_dir/${data_files[0]}" \

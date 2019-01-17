@@ -10,7 +10,8 @@ from os import listdir
 import numpy as np
 import tensorflow as tf
 
-import src.evaluation.eval_f1 as evaluation
+#from src.evaluation import  as evaluation
+from src.evaluation import eval_f1 as evaluation
 from src.models.bilstm import BiLSTM
 from src.models.bilstm_char import BiLSTMChar
 from src.models.cnn import CNN
@@ -95,13 +96,22 @@ def main(argv):
 
     type_set = {}
     type_int_int_map = {}
-    outside_set = ["O", "<PAD>", "<S>", "</S>", "<ZERO>"]
+    outside_set = ['0', "<PAD>", "<S>", "</S>", "<ZERO>"]
     for label, id in labels_str_id_map.items():
-        label_type = label if label in outside_set else label[2:]
+        print("label:",label)
+        if label in outside_set:
+            label_type=label
+        else:
+            if len(label)>1:
+                label_type=label[2:]
+            elif label=='0':
+                label_type=label
+        # label_type = label if label in outside_set else label[2:]
+        print("label type:",label_type)
         if label_type not in type_set:
             type_set[label_type] = len(type_set)
         type_int_int_map[id] = type_set[label_type]
-    print(type_set)
+    print("type_set:",type_set)
 
     # load embeddings, if given; initialize in range [-.01, .01]
     embeddings_shape = (vocab_size - 1, FLAGS.embed_dim)
@@ -304,11 +314,11 @@ def main(argv):
                                                       vocab_id_str_map, pad_width)
 
                 # print evaluation
+                print("typeset0:",type_set['0'])
                 f1_micro, precision = evaluation.segment_eval(eval_batches, predictions, type_set, type_int_int_map,
                                                               labels_id_str_map, vocab_id_str_map,
                                                               outside_idx=map(
-                                                                  lambda t: type_set[t] if t in type_set else type_set[
-                                                                      "O"], outside_set),
+                                                                  lambda t: type_set[t] if t in type_set else type_set['0'], outside_set),
                                                               pad_width=pad_width, start_end=FLAGS.start_end,
                                                               extra_text="Segment evaluation %s:" % extra_text)
 
