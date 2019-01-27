@@ -95,7 +95,7 @@ def main(argv):
 
     type_set = {}
     type_int_int_map = {}
-    outside_set = ['0', "<PAD>", "<S>", "</S>", "<ZERO>"]
+    outside_set = ['O', "<PAD>", "<S>", "</S>", "<ZERO>"]
     for label, id in labels_str_id_map.items():
         print("label:",label)
         if label in outside_set:
@@ -313,11 +313,11 @@ def main(argv):
                                                       vocab_id_str_map, pad_width)
 
                 # print evaluation
-                print("typeset0:",type_set['0'])
+                print("type set O:", type_set['O'])
                 f1_micro, precision = evaluation.segment_eval(eval_batches, predictions, type_set, type_int_int_map,
                                                               labels_id_str_map, vocab_id_str_map,
                                                               outside_idx=map(
-                                                                  lambda t: type_set[t] if t in type_set else type_set['0'], outside_set),
+                                                                  lambda t: type_set[t] if t in type_set else type_set['O'], outside_set),
                                                               pad_width=pad_width, start_end=FLAGS.start_end,
                                                               extra_text="Segment evaluation %s:" % extra_text)
 
