@@ -9,6 +9,8 @@ source $conf
 
 additional_args=${@:2}
 
+echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
+
 echo $layers
 
 viterbi_param=""
