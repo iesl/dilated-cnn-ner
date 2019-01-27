@@ -9,7 +9,7 @@ source $conf
 
 additional_args=${@:2}
 
-output_dir="$DATA_DIR/data/$data_name-w$filter_width-$embeddings_name"
+output_dir="$DILATED_CNN_NER_ROOT/data/$data_name-w$filter_width-$embeddings_name"
 vocab_param="--vocab $embeddings"
 labels_param=""
 char_param=""
