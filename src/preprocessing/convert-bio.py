@@ -16,13 +16,14 @@ with open(args.input_file) as in_file, open(args.output_file, 'w') as output_fil
             split_line = line.split()
             full_label = split_line[3]
             rest = split_line[:3]
-            label = full_label[2:]
-            if label == "Other":
+            if full_label == "I-Other" or full_label == "0":
                 new_label = "O"
-            elif label == last_label:
-                new_label = "I-" + label
             else:
-                new_label = "B-" + label
+                label = full_label[2:]
+                if label == last_label:
+                    new_label = "I-" + label
+                else:
+                    new_label = "B-" + label
             last_label = label
             fields = rest + [new_label]
             print(FIELD_SEP.join(fields), file=output_file)
