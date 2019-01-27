@@ -73,7 +73,7 @@ def shape(string):
 
 
 def get_token_position_label_from_line(line):
-    token_str, position, _, label_str = line.strip().split(' ')
+    token_str, position, _, label_str = line.strip().split()
     return token_str, position, label_str
 
 
@@ -161,15 +161,19 @@ def make_example(writer, lines, label_map, token_map, shape_map, position_map, c
             # # print(label_str[2])
             # print("last_label:",last_label)
             # print(last_label)
-            if label_str == "O" or label_str[0] == "B" or (last_label != "O" and label_str != last_label):
+            if label_str == "O" or label_str[0] == "B" or (last_label != "O" and label_str[2:] != last_label[2:]):
                 if last_label[0] == "I":
                     labels[-1] = "L" + labels[-1][1:]
                 elif last_label[0] == "B":
                     labels[-1] = "U" + labels[-1][1:]
+                label_bilou = label_str
             if label_str[0] == "I":
-                if last_label == "O" or label_str != last_label:
-                    if len(label_str)>1:
-                        label_bilou = "B-" + label_str[2:]
+                if last_label == "O" or label_str[2:] != last_label[2:]:
+                    label_bilou = "B-" + label_str[2:]
+                else:
+                    label_bilou = label_str
+
+            # print(label_str, label_bilou)
 
             if token_str_normalized not in token_map:
                 oov_count += 1
