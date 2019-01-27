@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import print_function
 import numpy as np
 import math
 import sys, getopt
@@ -84,7 +85,7 @@ def bin_position_features(input_file, binned_file, num_x_bins, num_y_bins):
                                                                 num_y_bins=num_y_bins,
                                                                 page_coordinates=page_coordinates, x_bin_indices=(0, 1),
                                                                 y_bin_indices=(2, 3))
-                        for i in xrange(len(tokens)):
+                        for i in range(len(tokens)):
                             binned_positions_file.write(
                                 " ".join([tokens[i], ":".join(binned_positions[i]), "*", labels[i]]) + "\n")
                         tokens, labels, positions = [], [], []
@@ -96,7 +97,7 @@ def bin_position_features(input_file, binned_file, num_x_bins, num_y_bins):
                                                     num_y_bins=num_y_bins,
                                                     page_coordinates=page_coordinates, x_bin_indices=(0, 1),
                                                     y_bin_indices=(2, 3))
-            for i in xrange(len(tokens)):
+            for i in range(len(tokens)):
                 binned_positions_file.write(
                     " ".join([tokens[i], ":".join(binned_positions[i]), "*", labels[i]]) + "\n")
             binned_positions_file.write("\n")
@@ -105,22 +106,22 @@ def bin_position_features(input_file, binned_file, num_x_bins, num_y_bins):
 
 
 def train_test_split(input_file, output_dir, number_data_points):
-    print "number_data_points:",number_data_points
+    print("number_data_points:", number_data_points)
     train_limit = int(math.ceil(0.5 * number_data_points))
     dev_limit = int(math.ceil(0.7 * number_data_points))
-    print "train_limit:",train_limit,"dev_limit:",dev_limit
+    print("train_limit:", train_limit, "dev_limit:", dev_limit)
     train_data_points, dev_data_points, test_data_points, data_point, i = [], [], [], [], 0
     
-
-    shuffled_indices = range(number_data_points)
+    np.random.seed(42)
+    shuffled_indices = list(range(number_data_points))
     np.random.shuffle(shuffled_indices)
 
     train_indices = shuffled_indices[:train_limit]
-    print len(train_indices)
+    print(len(train_indices))
     dev_indices = shuffled_indices[train_limit:dev_limit]
-    print len(dev_indices)
+    print(len(dev_indices))
     test_indices = shuffled_indices[dev_limit:]
-    print len(test_indices)
+    print(len(test_indices))
 
     # print train_limit, dev_limit
     
@@ -139,19 +140,19 @@ def train_test_split(input_file, output_dir, number_data_points):
             elif data != '\n':
                 data_point.append(data)
 
-    with open(output_dir + "data.train", "w") as train_file:
+    with open(output_dir + "/data.train", "w") as train_file:
         for data_point in train_data_points:
             for data in data_point:
                 train_file.write(data)
             train_file.write("\n")
 
-    with open(output_dir + "data.testa", "w") as dev_file:
+    with open(output_dir + "/data.dev", "w") as dev_file:
         for data_point in dev_data_points:
             for data in data_point:
                 dev_file.write(data)
             dev_file.write("\n")
 
-    with open(output_dir + "data.testb", "w") as test_file:
+    with open(output_dir + "/data.test", "w") as test_file:
         for data_point in test_data_points:
             for data in data_point:
                 test_file.write(data)
@@ -180,7 +181,7 @@ def get_binned_centroid_measurements(input_file, binned_file, num_x_bins, num_y_
                 else:
                     if len(tokens) and len(positions) and len(labels) and np.sum(page_coordinates) != -4:
                         data_points_count += 1
-                        print data_points_count
+                        print(data_points_count)
                         binned_positions = get_binned_height_width(positions=np.array(positions), num_height_bins=2,
                                                                    num_width_bins=2, height_indices=(3,),
                                                                    width_indices=(2,))
@@ -189,15 +190,15 @@ def get_binned_centroid_measurements(input_file, binned_file, num_x_bins, num_y_
                                                                 num_y_bins=num_y_bins,
                                                                 page_coordinates=page_coordinates, x_bin_indices=(0,),
                                                                 y_bin_indices=(1,))
-                        for i in xrange(len(tokens)):
+                        for i in range(len(tokens)):
                             binned_positions_file.write(
                                 " ".join([tokens[i], ":".join(binned_positions[i]), "*", labels[i]]) + "\n")
                         tokens, labels, positions = [], [], []
                         binned_positions_file.write("\n")
-        print len(tokens),len(positions),len(labels),np.sum(page_coordinates)
+        print(len(tokens),len(positions),len(labels),np.sum(page_coordinates))
         if len(tokens) and len(positions) and len(labels) and np.sum(page_coordinates) != -4:
             data_points_count += 1
-            print "data_points_count",data_points_count
+            print("data_points_count", data_points_count)
             binned_positions = get_binned_height_width(positions=np.array(positions), num_height_bins=2,
                                                        num_width_bins=2, height_indices=(3,),
                                                        width_indices=(2,))
@@ -205,7 +206,7 @@ def get_binned_centroid_measurements(input_file, binned_file, num_x_bins, num_y_
                                                     num_y_bins=num_y_bins,
                                                     page_coordinates=page_coordinates, x_bin_indices=(0,),
                                                     y_bin_indices=(1,))
-            for i in xrange(len(tokens)):
+            for i in range(len(tokens)):
                 binned_positions_file.write(
                     " ".join([tokens[i], ":".join(binned_positions[i]), "*", labels[i]]) + "\n")
             binned_positions_file.write("\n")
@@ -220,12 +221,12 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "hx:y:i:b:d:", ["xbins=", "ybins=", "input=", "binned=", "traintestdir="])
     except getopt.GetoptError:
-        print 'python bin_positions_preprocess.py -x <x_bins> -y <y_bins> -i <input_file> -b <binned_output_file> -d <train_test_dir>'
+        print('python bin_positions_preprocess.py -x <x_bins> -y <y_bins> -i <input_file> -b <binned_output_file> -d <train_test_dir>')
         sys.exit(2)
 
     for opt, arg in opts:
         if opt == '-h':
-            print 'python bin_positions_preprocess.py -x <x_bins> -y <y_bing> -i <input_file> -b <binned_output_file> -d <train_test_dir>'
+            print('python bin_positions_preprocess.py -x <x_bins> -y <y_bing> -i <input_file> -b <binned_output_file> -d <train_test_dir>')
             sys.exit()
         elif opt in ("-x", "--xbins"):
             num_x_bins = arg
@@ -240,18 +241,18 @@ def main(argv):
     
     ## Debugging
     
-    print num_x_bins
-    print num_y_bins
-    print input_file
-    print binned_file
-    print train_test_dir
+    print(num_x_bins)
+    print(num_y_bins)
+    print(input_file)
+    print(binned_file)
+    print(train_test_dir)
 
 
     output_file, data_points_count = get_binned_centroid_measurements(input_file=input_file, binned_file=binned_file,num_x_bins=num_x_bins, num_y_bins=num_y_bins)
-    print "{} Binned positions written into file: {}".format(data_points_count, output_file)
+    print("{} Binned positions written into file: {}".format(data_points_count, output_file))
 
     train_test_split(input_file=output_file, output_dir=train_test_dir, number_data_points=data_points_count)
-    print "Train, Dev, Test files written into respective files in directory: " + train_test_dir
+    print("Train, Dev, Test files written into respective files in directory: " + train_test_dir)
 
 
 if __name__ == '__main__':
