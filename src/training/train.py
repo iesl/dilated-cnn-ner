@@ -10,7 +10,6 @@ from os import listdir
 import numpy as np
 import tensorflow as tf
 
-#from src.evaluation import  as evaluation
 from src.evaluation import eval_f1 as evaluation
 from src.models.bilstm import BiLSTM
 from src.models.bilstm_char import BiLSTMChar
@@ -33,7 +32,7 @@ def main(argv):
         print('Must supply input data_1 directory generated from tsv_to_tfrecords.py')
         sys.exit(1)
 
-    print('\n'.join(sorted(["%s : %s" % (str(k), str(v)) for k, v in FLAGS.__dict__['__flags'].items()])))
+    # print('\n'.join(sorted(["%s : %s" % (str(k), str(v)) for k, v in FLAGS.__dict__['__flags'].items()])))
 
     with open(maps_dir + '/label.txt', 'r') as f:
         labels_str_id_map = {l.split('\t')[0]: int(l.split('\t')[1].strip()) for l in f.readlines()}
