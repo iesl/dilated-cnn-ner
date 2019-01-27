@@ -23,6 +23,7 @@ with open(args.input_file) as in_file, open(args.output_file, 'w') as output_fil
                 new_label = "I-" + label
             else:
                 new_label = "B-" + label
+            last_label = label
             fields = rest + [new_label]
             print(FIELD_SEP.join(fields), file=output_file)
 
