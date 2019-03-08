@@ -15,11 +15,10 @@ with open(args.input_file) as in_file:
         line = line.strip()
         if line:
             split_line = line.split()
-            print(split_line)
             full_label = split_line[3]
             rest = split_line[:3]
             label = "O" if full_label == "O" else full_label[2:]
-            bio_prefix = "O" if full_label == "O" else full_label[:2]
+            bio_prefix = "O" if full_label == "O" else full_label[0]
             if bio_prefix == "B" or bio_prefix == "U":
                 if label not in label_counts:
                     label_counts[label] = 0
