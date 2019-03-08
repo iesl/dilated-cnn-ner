@@ -13,6 +13,7 @@ with open(args.input_file) as in_file:
     buf = []
     for line in in_file:
         line = line.strip()
+        print(line)
         if line:
             split_line = line.split()
             full_label = split_line[3]
