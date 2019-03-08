@@ -7,6 +7,7 @@ args = arg_parser.parse_args()
 
 
 num_documents = 0
+num_tokens = 0
 label_counts = {}
 
 with open(args.input_file) as in_file:
@@ -24,7 +25,7 @@ with open(args.input_file) as in_file:
                     label_counts[label] = 0
                 label_counts[label] += 1
             buf.append(line)
-
+            num_tokens += 1
         elif buf:
             buf = []
             num_documents += 1
@@ -33,6 +34,7 @@ if buf:
 
 
 print("Number of documents: %d" % num_documents)
+print("Number of tokens: %d" % num_tokens)
 print("Number of phrases: %d" % sum(label_counts.values()))
 print("Labeled segments:")
 print(list(label_counts.items()))
