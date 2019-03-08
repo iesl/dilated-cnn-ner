@@ -97,20 +97,18 @@ def main(argv):
     type_int_int_map = {}
     outside_set = ['O', "<PAD>", "<S>", "</S>", "<ZERO>"]
     for label, id in labels_str_id_map.items():
-        print("label:",label)
         if label in outside_set:
-            label_type=label
+            label_type = label
         else:
-            if len(label)>1:
-                label_type=label[2:]
-            elif label=='0':
-                label_type=label
+            if len(label) > 1:
+                label_type = label[2:]
+            elif label == '0':
+                label_type = label
         # label_type = label if label in outside_set else label[2:]
-        print("label type:",label_type)
         if label_type not in type_set:
             type_set[label_type] = len(type_set)
         type_int_int_map[id] = type_set[label_type]
-    print("type_set:",type_set)
+    print("type_set:", type_set)
 
     # load embeddings, if given; initialize in range [-.01, .01]
     embeddings_shape = (vocab_size - 1, FLAGS.embed_dim)
