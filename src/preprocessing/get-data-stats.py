@@ -35,4 +35,4 @@ if buf:
 print("Number of documents: %d" % num_documents)
 print("Number of phrases: %d" % sum(label_counts.values()))
 print("Labeled segments:")
-print(list(label_counts))
+print(list(label_counts.items()))
