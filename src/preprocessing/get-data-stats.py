@@ -13,9 +13,9 @@ with open(args.input_file) as in_file:
     buf = []
     for line in in_file:
         line = line.strip()
-        print(line)
         if line:
             split_line = line.split()
+            print(split_line)
             full_label = split_line[3]
             rest = split_line[:3]
             label = "O" if full_label == "O" else full_label[2:]
