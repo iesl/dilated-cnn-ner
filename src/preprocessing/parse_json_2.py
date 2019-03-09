@@ -49,7 +49,7 @@ with open(target_file, 'w') as output_file:
                     annotation=ip['annotations']
                     doc_id=ip['stableId']
                     page_x,page_y=pg_geometry[doc_id][2],pg_geometry[doc_id][3]
-                    print(page_x, page_y)
+                    # print(page_x, page_y)
                     page_records={}
                     all_tokens=[]
                     all_pages=[]
@@ -117,67 +117,36 @@ with open(target_file, 'w') as output_file:
                                             token_local=''
 
                             else:
-                                label=annot['label']
-                                rows=body['rows']
+                                label = annot['label']
+                                rows = body['rows']
                                 for r in rows:
-                                    offset_local=r['offset']
-                                    token_local=''
+                                    offset_local = r['offset']
+                                    token_local = ''
 
-                                    loci_local=r['loci']
-                                    curr_token=0
-                                    # for l in loci_local:
-                                    #     if "g" in l:
-                                    #
-                                    #         token_local[curr_token]+=l['g'][0][0]
-                                    #     else:
-                                    #         curr_token+=1
-                                    start_x,start_y,end_x,end_y=0,0,0,0
+                                    loci_local = r['loci']
+                                    curr_token = 0
+                                    start_x, start_y, end_x, end_y = 0, 0, 0, 0
                                     for l in range(len(loci_local)):
-                                        # if l==len(loci_local)-1:
-                                        #     print "last"
-                                        # if l==0:
-                                        #     start_x,start_y=loci_local[l]['g'][0][2][0],loci_local[l]['g'][0][2][1]
-                                        #     local_page=loci_local[l]['g'][0][1]
                                         if "g" in loci_local[l]:
-                                            #print "character:",loci_local[l]['g'][0][0]
-
                                             if check_escape_chr(loci_local[l]['g'][0][0]):
-                                                token_local+=loci_local[l]['g'][0][0]
-                                                token_local=unicodedata.normalize("NFKD",token_local)
-                                                if start_x==0 and start_y==0:
-                                                    start_x,start_y=loci_local[l]['g'][0][2][0],loci_local[l]['g'][0][2][1]
-                                                    local_page=loci_local[l]['g'][0][1]
-                                            #print token_local
-                                        if ("i" in loci_local[l]):
-                                            # print token_local
-                                            #print "character:",loci_local[l]['i'][0][0]
-                                            # print "elif",token_local
+                                                token_local += loci_local[l]['g'][0][0]
+                                                token_local = unicodedata.normalize("NFKD", token_local)
+                                                if start_x == 0 and start_y == 0:
+                                                    start_x, start_y = loci_local[l]['g'][0][2][0], loci_local[l]['g'][0][2][1]
+                                                    local_page = loci_local[l]['g'][0][1]
+                                        if "i" in loci_local[l]:
                                             if "g" in loci_local[l-1]:
-                                                end_x=loci_local[l-1]['g'][0][2][0]+loci_local[l-1]['g'][0][2][2]
-                                                end_y=loci_local[l-1]['g'][0][2][1]+loci_local[l-1]['g'][0][2][3]
-
-                                            # if offset_local in off_labels:
-                                            #     label_local=off_labels[offset_local]
-                                            # else:
-                                            #     label_local="0"
-                                                label_local="I-"+annot['label']
-                                                all_tokens.append((token_local,start_x,start_y,end_x,end_y,label_local,local_page))
-                                                start_x,start_y=0,0
-                                                token_local=''
-                                        elif (l==(len(loci_local)-1)):
-                                            # print token_local
-                                            #print "character:",loci_local[l]['i'][0][0]
-                                            # print "elif",token_local
-
-                                            end_x=loci_local[l]['g'][0][2][0]+loci_local[l]['g'][0][2][2]
-                                            end_y=loci_local[l]['g'][0][2][1]+loci_local[l]['g'][0][2][3]
-
-                                            # if offset_local in off_labels:
-                                            #     label_local=off_labels[offset_local]
-                                            # else:
-                                            #     label_local="0"
-                                            label_local="I-"+annot['label']
-                                            all_tokens.append((token_local,start_x,start_y,end_x,end_y,label_local,local_page))
+                                                end_x = loci_local[l-1]['g'][0][2][0] + loci_local[l-1]['g'][0][2][2]
+                                                end_y = loci_local[l-1]['g'][0][2][1] + loci_local[l-1]['g'][0][2][3]
+                                                label_local = "I-" + annot['label']
+                                                all_tokens.append((token_local, start_x, start_y, end_x, end_y, label_local, local_page))
+                                                start_x, start_y = 0, 0
+                                                token_local = ''
+                                        elif l == len(loci_local) - 1:
+                                            end_x = loci_local[l]['g'][0][2][0] + loci_local[l]['g'][0][2][2]
+                                            end_y = loci_local[l]['g'][0][2][1] + loci_local[l]['g'][0][2][3]
+                                            label_local = "I-" + annot['label']
+                                            all_tokens.append((token_local, start_x, start_y, end_x, end_y, label_local, local_page))
                                             start_x, start_y = 0, 0
                                             token_local = ''
 
@@ -191,7 +160,7 @@ with open(target_file, 'w') as output_file:
                             page_wise[ele[6]].append(list(ele)[:-1])
 
                     for pg in all_pages:
-                        doc_line = "0:0:" + str(page_x) + ":" + str(page_y)
+                        doc_line = "%s 0:0:%d:%d" % (doc_id, page_x, page_y)
                         print(doc_line, file=output_file)
                         tokens = page_wise[pg]
                         for ele in tokens:
