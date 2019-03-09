@@ -159,8 +159,8 @@ with open(target_file, 'w') as output_file:
                         else:
                             page_wise[ele[6]].append(list(ele)[:-1])
 
-                    for pg in all_pages:
-                        doc_line = "#docid %s 0:0:%d:%d" % (doc_id, page_x, page_y)
+                    for page_num, pg in enumerate(all_pages):
+                        doc_line = "#docid %s %d 0:0:%d:%d" % (doc_id[:-1], page_num + 1, page_x, page_y)
                         print(doc_line, file=output_file)
                         tokens = page_wise[pg]
                         for ele in tokens:
